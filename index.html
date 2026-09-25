@@ -6239,23 +6239,19 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Boot Supabase + localStorage
   await initDataSupabase();
 
-  renderLanding();
+  // Estado inicial: DESLOGADO se não houver sessão válida
   const session = DB.getSession();
-  if (session && !session.blocked) checkAuth();
-  else { updateNavbar(); navigateTo('landing'); }
-  lucide.createIcons();
-  // Execução automática da bateria de testes funcionais
-  try {
-    window.runKognusTests();
-  } catch(e) {
-    console.error('Erro ao executar testes funcionais:', e);
+  if (session && !session.blocked) {
+    checkAuth();
+  } else {
+    // Garante limpeza total para estado de visitante
+    DB.clearSession();
+    updateNavbar();
+    navigateTo('landing');
   }
-  // Garante que nenhum modal permaneça aberto após os testes
-  toggleModal('modal-admin-password-expired', false);
-  toggleModal('modal-user-profile', false);
-  toggleModal('modal-student-first-access', false);
-  toggleModal('modal-student-checkout', false);
-  toggleModal('modal-purchase-success', false);
+  lucide.createIcons();
+  // NOTA: Testes funcionais disponíveis via console: window.runKognusTests()
+  // Não são executados automaticamente para não interferir na sessão real
 });
 </script>
 </body>
