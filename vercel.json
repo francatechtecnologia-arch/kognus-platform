@@ -1,14 +1,5 @@
 ﻿{
-  "version": 2,
-  "public": true,
-  "routes": [
-    {
-      "src": "/logo.png",
-      "dest": "/logo.png"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

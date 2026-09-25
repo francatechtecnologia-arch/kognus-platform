@@ -1,0 +1,20 @@
+﻿# Servidor local Node.js (nao vai para Vercel)
+package.json
+package-lock.json
+node_modules/
+server.js
+test.js
+
+# Scripts locais Windows
+iniciar.bat
+testar.bat
+
+# Pastas auxiliares locais
+css/
+js/
+
+# Docs locais
+README.md
+
+# Vercel
+.vercelignore
