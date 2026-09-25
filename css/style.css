@@ -1,0 +1,104 @@
+/* ============================================================
+   style.css — Estilos customizados (complementa o Tailwind)
+   ============================================================ */
+
+/* --- Fonte principal --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Scrollbar customizada --- */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+
+/* --- Animação de entrada das telas --- */
+.screen-view:not(.hidden) {
+  animation: fadeSlideIn 0.25s ease both;
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Cards de curso: hover refinado --- */
+.course-card {
+  will-change: transform;
+}
+
+/* --- Barra de progresso animada --- */
+#player-progress-bar,
+#detail-progress-bar {
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+
+/* --- Toast --- */
+#toast {
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.3s ease;
+}
+#toast[data-type="success"] { border-color: rgba(16,185,129,.3); }
+#toast[data-type="error"]   { border-color: rgba(239,68,68,.3);  }
+
+/* --- Player: lista de aulas com scroll suave --- */
+#player-lessons-list {
+  scroll-behavior: smooth;
+}
+
+/* --- Aula ativa no player: realce sutil --- */
+.lesson-item:active {
+  transform: scale(0.98);
+}
+
+/* --- Tabela do instrutor: sticky header --- */
+#instructor-courses-tbody tr td {
+  font-size: 0.8125rem;
+}
+
+/* --- Gradiente animado no hero --- */
+.hero-gradient {
+  background: linear-gradient(135deg, #1e1b4b 0%, #09090b 50%, #1e1b4b 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* --- Badge de papel do usuário na nav --- */
+#nav-role-badge {
+  transition: all 0.2s ease;
+}
+
+/* --- Inputs: focus ring customizado --- */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+}
+
+/* --- Checkboxes arredondados --- */
+input[type="checkbox"] {
+  border-radius: 4px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+/* --- Modal: backdrop blur extra --- */
+#modal-course {
+  backdrop-filter: blur(8px);
+}
+
+/* --- Responsividade: tela de player no mobile --- */
+@media (max-width: 1023px) {
+  #player-sidebar {
+    height: 320px;
+  }
+}

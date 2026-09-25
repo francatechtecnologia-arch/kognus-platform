@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kognus - Plataforma de Cursos</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#1e1b4b'
+            },
+            darkBg: '#09090b',
+            darkCard: '#121217',
+            darkBorder: '#27272a'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-darkBg text-zinc-100 min-h-screen flex flex-col font-sans selection:bg-brand-600 selection:text-white">
+
+  <!-- NAVBAR GLOBAL -->
+  <nav class="border-b border-darkBorder bg-darkBg/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('landing')">
+        <div class="h-9 w-9 rounded-lg bg-gradient-to-tr from-brand-600 to-violet-400 flex items-center justify-center font-bold text-lg shadow-lg shadow-brand-500/20">
+          K
+        </div>
+        <span class="font-extrabold tracking-tight text-xl text-white">KOGNUS</span>
+      </div>
+
+      <!-- Links Não Logado -->
+      <div id="nav-guest" class="flex items-center space-x-4">
+        <button onclick="navigateTo('login')" class="text-zinc-300 hover:text-white text-sm font-medium transition">Entrar</button>
+        <button onclick="navigateTo('register')" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-brand-600/30">Cadastrar</button>
+      </div>
+
+      <!-- Links Logado -->
+      <div id="nav-user" class="hidden items-center space-x-4">
+        <span id="nav-user-name" class="text-sm font-medium text-zinc-400"></span>
+        <button onclick="handleLogout()" class="text-red-400 hover:text-red-300 text-sm font-medium flex items-center gap-1 transition">
+          <i data-lucide="log-out" class="w-4 h-4"></i> Sair
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MENSAGEM/TOAST -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 translate-y-20 opacity-0 bg-darkCard border border-darkBorder px-4 py-3 rounded-lg shadow-xl flex items-center space-x-2 text-sm">
+    <span id="toast-message">Mensagem aqui</span>
+  </div>
+
+  <!-- CONTAINER DE TELAS -->
+  <main class="flex-1">
+
+    <!-- 1. TELA: LANDING PAGE -->
+    <section id="screen-landing" class="screen-view">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div class="text-center max-w-3xl mx-auto space-y-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-400 text-xs font-semibold tracking-wide">
+            A NOVA GERAÇÃO DE INFOPRODUTOS
+          </div>
+          <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
+            Aprenda com mestres. <br>
+            <span class="bg-gradient-to-r from-brand-500 to-violet-400 bg-clip-text text-transparent">Monetize com escala.</span>
+          </h1>
+          <p class="text-zinc-400 text-lg sm:text-xl">
+            A plataforma com o menor take-rate do mercado para instrutores e o melhor player imersivo para alunos.
+          </p>
+          <div class="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+            <button onclick="openRegisterAs('aluno')" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3.5 rounded-xl font-semibold transition shadow-xl shadow-brand-600/25 flex items-center justify-center gap-2">
+              <i data-lucide="graduation-cap" class="w-5 h-5"></i> Comece a Aprender
+            </button>
+            <button onclick="openRegisterAs('instrutor')" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-8 py-3.5 rounded-xl font-semibold transition flex items-center justify-center gap-2">
+              <i data-lucide="briefcase" class="w-5 h-5"></i> Quero ser Instrutor
+            </button>
+          </div>
+        </div>
+
+        <!-- Grade de Cursos Vitrine -->
+        <div class="mt-28">
+          <h2 class="text-2xl font-bold mb-8">Cursos em Alta</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="landing-courses-grid">
+            <!-- Gerado dinamicamente via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. TELA: CADASTRO -->
+    <section id="screen-register" class="screen-view hidden py-16 px-4">
+      <div class="max-w-md mx-auto bg-darkCard border border-darkBorder p-8 rounded-2xl shadow-2xl">
+        <h2 class="text-2xl font-bold mb-2">Criar nova conta</h2>
+        <p class="text-zinc-400 text-sm mb-6">Escolha o seu perfil de uso</p>
+
+        <form id="form-register" class="space-y-4" onsubmit="handleRegister(event)">
+          <!-- Seletor de Perfil -->
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <label class="cursor-pointer border border-darkBorder rounded-xl p-3 flex flex-col items-center gap-2 hover:border-brand-500 transition has-[:checked]:border-brand-600 has-[:checked]:bg-brand-600/10">
+              <input type="radio" name="reg-role" value="aluno" class="hidden" checked>
+              <i data-lucide="user" class="w-5 h-5 text-brand-400"></i>
+              <span class="text-xs font-semibold">Aluno</span>
+            </label>
+            <label class="cursor-pointer border border-darkBorder rounded-xl p-3 flex flex-col items-center gap-2 hover:border-brand-500 transition has-[:checked]:border-brand-600 has-[:checked]:bg-brand-600/10">
+              <input type="radio" name="reg-role" value="instrutor" class="hidden">
+              <i data-lucide="presentation" class="w-5 h-5 text-violet-400"></i>
+              <span class="text-xs font-semibold">Instrutor</span>
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-1">Nome Completo</label>
+            <input type="text" id="reg-name" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-1">E-mail</label>
+            <input type="email" id="reg-email" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-1">Senha</label>
+            <input type="password" id="reg-password" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+          </div>
+
+          <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-medium text-sm transition mt-4 shadow-lg shadow-brand-600/30">
+            Completar Cadastro
+          </button>
+        </form>
+
+        <p class="text-xs text-center text-zinc-400 mt-6">
+          Já possui conta? <button onclick="navigateTo('login')" class="text-brand-400 hover:underline">Fazer Login</button>
+        </p>
+      </div>
+    </section>
+
+    <!-- 3. TELA: LOGIN -->
+    <section id="screen-login" class="screen-view hidden py-16 px-4">
+      <div class="max-w-md mx-auto bg-darkCard border border-darkBorder p-8 rounded-2xl shadow-2xl">
+        <h2 class="text-2xl font-bold mb-2">Acessar Plataforma</h2>
+        <p class="text-zinc-400 text-sm mb-6">Entre com suas credenciais cadastradas</p>
+
+        <form id="form-login" class="space-y-4" onsubmit="handleLogin(event)">
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-1">E-mail</label>
+            <input type="email" id="login-email" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-1">Senha</label>
+            <input type="password" id="login-password" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+          </div>
+
+          <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-medium text-sm transition mt-4 shadow-lg shadow-brand-600/30">
+            Acessar Conta
+          </button>
+        </form>
+
+        <div class="mt-4 p-3 bg-zinc-900/60 border border-darkBorder rounded-lg text-xs text-zinc-400 space-y-1">
+          <p class="font-semibold text-zinc-300">Contas de demonstração:</p>
+          <p>Aluno: <code>aluno@kognus.com</code> | Senha: <code>123456</code></p>
+          <p>Instrutor: <code>instrutor@kognus.com</code> | Senha: <code>123456</code></p>
+        </div>
+
+        <p class="text-xs text-center text-zinc-400 mt-6">
+          Não tem conta? <button onclick="navigateTo('register')" class="text-brand-400 hover:underline">Cadastre-se</button>
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. DASHBOARD DO ALUNO (PLAYER LMS) -->
+    <section id="screen-aluno-dash" class="screen-view hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="mb-8">
+        <h1 class="text-2xl font-bold">Ambiente do Aluno</h1>
+        <p class="text-zinc-400 text-sm">Bem-vindo(a) de volta! Continue seus estudos de onde parou.</p>
+      </div>
+
+      <!-- Player Simulado -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-4">
+          <div class="aspect-video bg-black rounded-xl overflow-hidden border border-darkBorder relative shadow-2xl flex items-center justify-center">
+            <iframe id="lms-video" class="w-full h-full" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Player de Vídeo" frameborder="0" allowfullscreen></iframe>
+          </div>
+          <div>
+            <h2 id="lms-lesson-title" class="text-xl font-bold">Módulo 1: Introdução à Metodologia</h2>
+            <p class="text-zinc-400 text-sm mt-1">Conclua esta aula para liberar o próximo módulo do curso.</p>
+          </div>
+        </div>
+
+        <!-- Grade de Aulas -->
+        <div class="bg-darkCard border border-darkBorder rounded-xl p-4 h-[420px] flex flex-col">
+          <h3 class="font-semibold text-sm mb-3">Conteúdo do Curso</h3>
+          <div class="space-y-2 overflow-y-auto flex-1 pr-2" id="lms-lessons-list">
+            <!-- Inserido dinamicamente via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. DASHBOARD DO INSTRUTOR (CREATOR STUDIO) -->
+    <section id="screen-instrutor-dash" class="screen-view hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+          <h1 class="text-2xl font-bold">Creator Studio</h1>
+          <p class="text-zinc-400 text-sm">Gerencie seus cursos e acompanhe seus recebíveis.</p>
+        </div>
+        <button onclick="toggleModalCourse(true)" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i> Adicionar Novo Curso
+        </button>
+      </div>
+
+      <!-- Cards de Faturamento -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div class="bg-darkCard border border-darkBorder p-5 rounded-xl">
+          <span class="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Receita Bruta</span>
+          <p class="text-2xl font-bold mt-1 text-white" id="stat-gross">R$ 14.850,00</p>
+        </div>
+        <div class="bg-darkCard border border-darkBorder p-5 rounded-xl">
+          <span class="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Saldo Líquido (Pós-Split)</span>
+          <p class="text-2xl font-bold mt-1 text-emerald-400" id="stat-net">R$ 13.662,00</p>
+        </div>
+        <div class="bg-darkCard border border-darkBorder p-5 rounded-xl">
+          <span class="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Alunos Matriculados</span>
+          <p class="text-2xl font-bold mt-1 text-white" id="stat-students">87</p>
+        </div>
+      </div>
+
+      <!-- Tabela de Cursos -->
+      <div class="bg-darkCard border border-darkBorder rounded-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-darkBorder">
+          <h3 class="font-semibold text-sm">Seus Cursos Publicados</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-zinc-300">
+            <thead class="bg-zinc-900/50 text-xs text-zinc-400 uppercase tracking-wider">
+              <tr>
+                <th class="px-6 py-3">Curso</th>
+                <th class="px-6 py-3">Categoria</th>
+                <th class="px-6 py-3">Preço</th>
+                <th class="px-6 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody id="instructor-courses-tbody" class="divide-y divide-darkBorder">
+              <!-- Gerado via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: CRIAR NOVO CURSO -->
+  <div id="modal-course" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-darkCard border border-darkBorder w-full max-w-md rounded-2xl p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg">Criar Novo Curso</h3>
+        <button onclick="toggleModalCourse(false)" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="form-create-course" onsubmit="handleCreateCourse(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1">Título do Curso</label>
+          <input type="text" id="course-title" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1">Categoria</label>
+          <input type="text" id="course-cat" required placeholder="Ex: Negócios, Cabelo, Design" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1">Preço de Venda (R$)</label>
+          <input type="number" id="course-price" step="0.01" required placeholder="197.00" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
+        </div>
+        <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-2.5 rounded-lg text-sm font-medium transition">Publicar Curso</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT DE NAVEGAÇÃO E REGRAS DE NEGÓCIO -->
+  <script>
+    // 1. DADOS DE DEMONSTRAÇÃO
+    const INITIAL_USERS = [
+      { email: 'aluno@kognus.com', pass: '123456', name: 'Lucas Aluno', role: 'aluno' },
+      { email: 'instrutor@kognus.com', pass: '123456', name: 'Renato Mestre', role: 'instrutor' }
+    ];
+
+    const INITIAL_COURSES = [
+      { id: 1, title: 'Colorimetria Avançada e Tonalização', category: 'Cabelo', price: 297, instructor: 'Renato Mestre' },
+      { id: 2, title: 'Gestão Financeira para Salões', category: 'Negócios', price: 197, instructor: 'Renato Mestre' },
+      { id: 3, title: 'Design de Cortes Masculinos Modernos', category: 'Barbearia', price: 147, instructor: 'Camila Hair' }
+    ];
+
+    const LESSONS = [
+      { id: 1, title: '01. Boas-vindas e Fundamentos', done: true },
+      { id: 2, title: '02. Configuração de Materiais', done: false },
+      { id: 3, title: '03. Prática em Tempo Real', done: false },
+      { id: 4, title: '04. Estratégias de Finalização', done: false }
+    ];
+
+    // INICIALIZAÇÃO LOCALSTORAGE
+    function initData() {
+      if (!localStorage.getItem('kognus_users')) {
+        localStorage.setItem('kognus_users', JSON.stringify(INITIAL_USERS));
+      }
+      if (!localStorage.getItem('kognus_courses')) {
+        localStorage.setItem('kognus_courses', JSON.stringify(INITIAL_COURSES));
+      }
+    }
+
+    // NAVEGAÇÃO ENTRE TELAS
+    function navigateTo(screenId) {
+      document.querySelectorAll('.screen-view').forEach(el => el.classList.add('hidden'));
+      const target = document.getElementById('screen-' + screenId);
+      if (target) {
+        target.classList.remove('hidden');
+        window.scrollTo(0, 0);
+      }
+      lucide.createIcons();
+    }
+
+    // TOAST NOTIFIER
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-message').textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    // AUTENTICAÇÃO
+    function getSession() {
+      return JSON.parse(localStorage.getItem('kognus_session'));
+    }
+
+    function checkAuth() {
+      const session = getSession();
+      const navGuest = document.getElementById('nav-guest');
+      const navUser = document.getElementById('nav-user');
+
+      if (session) {
+        navGuest.classList.add('hidden');
+        navUser.classList.remove('hidden');
+        document.getElementById('nav-user-name').textContent = `${session.name} (${session.role})`;
+
+        if (session.role === 'instrutor') {
+          renderInstructorPanel();
+          navigateTo('instrutor-dash');
+        } else {
+          renderAlunoPanel();
+          navigateTo('aluno-dash');
+        }
+      } else {
+        navGuest.classList.remove('hidden');
+        navUser.classList.add('hidden');
+        navigateTo('landing');
+      }
+    }
+
+    function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value;
+      const email = document.getElementById('reg-email').value;
+      const pass = document.getElementById('reg-password').value;
+      const role = document.querySelector('input[name="reg-role"]:checked').value;
+
+      const users = JSON.parse(localStorage.getItem('kognus_users'));
+      if (users.some(u => u.email === email)) {
+        showToast('Este e-mail já está cadastrado.');
+        return;
+      }
+
+      const newUser = { name, email, pass, role };
+      users.push(newUser);
+      localStorage.setItem('kognus_users', JSON.stringify(users));
+
+      // Login automático pós cadastro
+      localStorage.setItem('kognus_session', JSON.stringify(newUser));
+      showToast('Conta criada com sucesso! Entrando...');
+      checkAuth();
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const pass = document.getElementById('login-password').value;
+
+      const users = JSON.parse(localStorage.getItem('kognus_users'));
+      const user = users.find(u => u.email === email && u.pass === pass);
+
+      if (!user) {
+        showToast('E-mail ou senha inválidos.');
+        return;
+      }
+
+      localStorage.setItem('kognus_session', JSON.stringify(user));
+      showToast('Login realizado com sucesso!');
+      checkAuth();
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('kognus_session');
+      showToast('Sessão encerrada.');
+      checkAuth();
+    }
+
+    function openRegisterAs(role) {
+      const radio = document.querySelector(`input[name="reg-role"][value="${role}"]`);
+      if (radio) radio.checked = true;
+      navigateTo('register');
+    }
+
+    // RENDERIZADORES
+    function renderCoursesLanding() {
+      const courses = JSON.parse(localStorage.getItem('kognus_courses'));
+      const grid = document.getElementById('landing-courses-grid');
+      grid.innerHTML = courses.map(c => `
+        <div class="bg-darkCard border border-darkBorder rounded-xl p-5 flex flex-col justify-between hover:border-brand-500/50 transition shadow-lg">
+          <div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 uppercase tracking-wider">${c.category}</span>
+            <h3 class="font-bold text-lg text-white mt-2">${c.title}</h3>
+            <p class="text-xs text-zinc-400 mt-1">Instrutor: ${c.instructor}</p>
+          </div>
+          <div class="mt-6 flex items-center justify-between pt-4 border-t border-darkBorder">
+            <span class="font-extrabold text-xl text-white">R$ ${c.price.toFixed(2)}</span>
+            <button onclick="navigateTo('login')" class="bg-zinc-800 hover:bg-zinc-700 text-white text-xs px-3 py-1.5 rounded-lg transition font-medium">
+              Acessar
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAlunoPanel() {
+      const list = document.getElementById('lms-lessons-list');
+      list.innerHTML = LESSONS.map(lesson => `
+        <div class="flex items-center justify-between p-3 rounded-lg bg-zinc-900/60 border border-darkBorder text-xs cursor-pointer hover:border-brand-500 transition" onclick="selectLesson('${lesson.title}')">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" ${lesson.done ? 'checked' : ''} class="rounded border-zinc-700 text-brand-600 focus:ring-0">
+            <span class="${lesson.done ? 'line-through text-zinc-500' : 'text-zinc-200'}">${lesson.title}</span>
+          </div>
+          <i data-lucide="play-circle" class="w-4 h-4 text-zinc-400"></i>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function selectLesson(title) {
+      document.getElementById('lms-lesson-title').textContent = title;
+    }
+
+    function renderInstructorPanel() {
+      const courses = JSON.parse(localStorage.getItem('kognus_courses'));
+      const tbody = document.getElementById('instructor-courses-tbody');
+      tbody.innerHTML = courses.map(c => `
+        <tr class="hover:bg-zinc-900/30">
+          <td class="px-6 py-4 font-medium text-white">${c.title}</td>
+          <td class="px-6 py-4">${c.category}</td>
+          <td class="px-6 py-4">R$ ${c.price.toFixed(2)}</td>
+          <td class="px-6 py-4"><span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Publicado</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function toggleModalCourse(show) {
+      const modal = document.getElementById('modal-course');
+      modal.classList.toggle('hidden', !show);
+      modal.classList.toggle('flex', show);
+    }
+
+    function handleCreateCourse(e) {
+      e.preventDefault();
+      const session = getSession();
+      const title = document.getElementById('course-title').value;
+      const category = document.getElementById('course-cat').value;
+      const price = parseFloat(document.getElementById('course-price').value);
+
+      const courses = JSON.parse(localStorage.getItem('kognus_courses'));
+      courses.push({
+        id: Date.now(),
+        title,
+        category,
+        price,
+        instructor: session.name
+      });
+
+      localStorage.setItem('kognus_courses', JSON.stringify(courses));
+      toggleModalCourse(false);
+      showToast('Novo curso publicado com sucesso!');
+      renderInstructorPanel();
+      renderCoursesLanding();
+    }
+
+    // BOOTSTRAP
+    window.addEventListener('DOMContentLoaded', () => {
+      initData();
+      renderCoursesLanding();
+      checkAuth();
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

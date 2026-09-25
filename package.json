@@ -1,0 +1,20 @@
+{
+  "name": "kognus-plataforma-cursos",
+  "version": "2.0.0",
+  "description": "KOGNUS 2.0 - Plataforma de cursos online com Creator Studio, Certificados e Gestão SaaS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "kognus",
+    "cursos",
+    "saas",
+    "creator-studio",
+    "certificados"
+  ],
+  "author": "KOGNUS",
+  "license": "MIT"
+}
