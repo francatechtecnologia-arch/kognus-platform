@@ -1,156 +1,275 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark">
-
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>KOGNUS - Plataforma Educacional & SaaS</title>
+  <title>KOGNUS — Plataforma Educacional & Creator Studio SaaS</title>
+  <meta name="description" content="Plataforma de cursos online e gestão de escolas digitais com 0% de comissão.">
   <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <meta name="theme-color" content="#09090b">
+
+  <!-- Fontes Google -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+
+  <!-- CDN Dependencies -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif'],
+            cinzel: ['Cinzel', 'serif']
+          },
           colors: {
-            brand: { 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+            brand: {
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#1e1b4b'
+            },
             darkBg: '#09090b',
-            darkCard: '#121217',
+            darkCard: '#111116',
             darkBorder: '#27272a'
           }
         }
       }
-    }
+    };
   </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+    
+    @media print {
+      body * { visibility: hidden !important; }
+      #printable-cert, #printable-cert * { visibility: visible !important; }
+      #printable-cert {
+        position: fixed !important;
+        left: 0 !important; top: 0 !important;
+        width: 100vw !important; height: 100vh !important;
+        margin: 0 !important; padding: 2rem !important;
+        background: #fff !important; color: #111 !important;
+        border: 4px double #d97706 !important;
+        z-index: 999999 !important;
+        display: flex !important; flex-direction: column !important;
+        justify-content: space-between !important;
+      }
+    }
+  </style>
 </head>
+<body class="bg-darkBg text-zinc-100 min-h-screen flex flex-col selection:bg-brand-600 selection:text-white">
 
-<body
-  class="bg-darkBg text-zinc-100 font-sans antialiased selection:bg-brand-600 selection:text-white min-h-screen flex flex-col justify-between">
-
-  <!-- ==================== HEADER UNIFICADO (ZERO BUG VISUAL) ==================== -->
-  <header
-    class="border-b border-darkBorder bg-darkBg/95 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 h-16 flex items-center justify-between">
-    <!-- Esquerda: Marca -->
-    <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('landing')">
-      <img src="logo.png" alt="KOGNUS" class="h-8 w-auto object-contain"
-        onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=K'">
-      <span class="font-black tracking-tight text-xl text-white">KOGNUS</span>
+  <!-- CABEÇALHO UNIFICADO (HEADER) -->
+  <header class="border-b border-darkBorder bg-darkBg/95 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 h-16 flex items-center justify-between transition-all">
+    <!-- Lado Esquerdo: Logo + Nome -->
+    <div class="flex items-center space-x-3 cursor-pointer group" onclick="navigateTo('landing')">
+      <img src="logo.png" alt="KOGNUS" class="h-8 w-auto object-contain drop-shadow-[0_2px_8px_rgba(99,102,241,0.3)] transition-transform group-hover:scale-105" onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=K'">
+      <span class="font-black tracking-tight text-xl text-white group-hover:text-brand-400 transition">KOGNUS</span>
     </div>
 
-    <!-- Centro: Links dinâmicos -->
+    <!-- Centro: Links de Navegação Consistentes -->
     <nav id="nav-links" class="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-300">
-      <!-- Injetado via JS -->
+      <!-- Injetado dinamicamente via JS -->
     </nav>
 
-    <!-- Direita: Área do usuário ou botões de visitante -->
+    <!-- Lado Direito: Ações / Perfil de Usuário -->
     <div id="nav-user-area" class="flex items-center space-x-3">
-      <!-- Injetado via JS -->
+      <!-- Injetado dinamicamente via JS -->
     </div>
   </header>
 
-  <!-- ==================== VIEWPORT PRINCIPAL ==================== -->
+  <!-- VIEWPORT PRINCIPAL SPA -->
   <main id="app-viewport" class="flex-1 w-full max-w-7xl mx-auto px-4 py-8">
-    <!-- Telas renderizadas dinamicamente -->
+    <!-- Conteúdo dinâmico das telas renderizado aqui -->
   </main>
 
-  <!-- ==================== NOTIFICAÇÕES TOAST ==================== -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+  <!-- RODAPÉ INSTITUCIONAL OFICIAL -->
+  <footer class="border-t border-darkBorder bg-darkBg py-8 px-4 text-center text-xs text-zinc-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <img src="logo.png" alt="KOGNUS" class="h-5 w-auto object-contain opacity-70" onerror="this.src='https://placehold.co/20x20/6366f1/ffffff?text=K'">
+        <span class="font-bold text-zinc-400">KOGNUS</span>
+        <span>&copy; 2026. Todos os direitos reservados.</span>
+      </div>
+      <div class="flex items-center space-x-6 text-zinc-400">
+        <button onclick="navigateTo('landing')" class="hover:text-white transition">Início</button>
+        <button onclick="navigateTo('register-instructor')" class="hover:text-white transition">Para Instrutores</button>
+        <span class="text-zinc-600">|</span>
+        <span class="text-brand-400 font-semibold">SaaS Puro (0% Comissão • R$ 89,90/mês)</span>
+      </div>
+    </div>
+  </footer>
 
+  <!-- CONTAINER DE TOASTS -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT GLOBAL -->
   <script>
-    // 1. SUPABASE CLIENT
+    // 1. SUPABASE CLIENT & FALLBACK RESILIENTE
     const SUPABASE_URL = 'https://nbpxotppnjlxqjgzcblw.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5icHhvdHBwbmpseHFqZ3pjYmx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMTAwNjYsImV4cCI6MjEwNTg4NjA2Nn0.QsaRhyuqXA8gXT890V7W8o2pL4unrFVatxlOnLwGnXA';
     let db = null;
     try {
-      db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (e) {
-      console.warn("Supabase local mode.");
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
+        db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch(e) {
+      console.warn('[Supabase] Falha ao instanciar cliente oficial. Usando contingência local em memória.', e);
     }
 
-    // 2. ESTADO GLOBAL
-    let currentUser = null;
+    // 2. ESTADO GLOBAL DA APLICAÇÃO
+    let currentUser = null; // Padrão inicial rigoroso: DESLOGADO
     let currentView = 'landing';
+    let selectedCourse = null;
     let selectedLesson = null;
-    let completedLessons = [1];
+    let completedLessons = [1, 2];
+    let openAccordionModules = { 1: true, 2: true };
+    let showAddLessonForm = false;
 
+    // Banco de Dados Seed Local / Contingência
     let state = {
       courses: [
         {
           id: 1,
-          title: "Colorimetria Avançada e Tonalização",
+          title: "Colorimetria Avançada & Neutralização Perfeita",
           instructor: "Prof. Renato Mestre",
+          instructorEmail: "instrutor@kognus.com",
           school: "Escola do Renato Mestre",
           price: "297,00",
-          category: "Beleza",
-          image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=600&q=80",
+          category: "Colorimetria",
+          image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80",
+          description: "Domine a colorimetria profissional, estrela de Oswald e neutralização de tons quentes com técnicas avançadas de salão.",
+          status: "Publicado",
+          studentsCount: 218,
           modules: [
             {
               id: 1,
-              title: "Módulo 1: Fundamentos da Cor",
+              title: "Módulo 1: Fundamentos da Cor & Teoria das Matizes",
               lessons: [
-                { id: 1, title: "01. Estrela de Oswald e Neutralização", duration: "15 min", youtubeId: "dQw4w9WgXcQ", pdf: "Apostila_Colorimetria_Mod1.pdf" },
-                { id: 2, title: "02. Fundo de Clareamento sem Segredos", duration: "20 min", youtubeId: "dQw4w9WgXcQ", pdf: "Tabela_Clareamento.pdf" }
+                { id: 1, title: "01. Estrela de Oswald Aplicada", duration: "14 min", youtubeId: "dQw4w9WgXcQ", pdf: "Apostila_Modulo1_EstrelaOswald.pdf" },
+                { id: 2, title: "02. Neutralização Direta de Fundos de Clareamento", duration: "18 min", youtubeId: "dQw4w9WgXcQ", pdf: "Calculo_Neutralizacao_Pratica.pdf" }
               ]
             },
             {
               id: 2,
-              title: "Módulo 2: Aplicação Prática",
+              title: "Módulo 2: Casos Práticos de Salão & Finalização",
               lessons: [
-                { id: 3, title: "03. Matização e Banho de Brilho", duration: "18 min", youtubeId: "dQw4w9WgXcQ", pdf: "Guia_Matizacao.pdf" }
+                { id: 3, title: "03. Tratamento de Cabelos Sensibilizados", duration: "22 min", youtubeId: "dQw4w9WgXcQ", pdf: "Ficha_Diagnostico_Capilar.pdf" },
+                { id: 4, title: "04. Matização com Pigmentos Puros e Brilho Espelhado", duration: "19 min", youtubeId: "dQw4w9WgXcQ", pdf: "Guia_Matizacao_Final.pdf" }
               ]
             }
           ]
         },
         {
           id: 2,
-          title: "Gestão Financeira para Salões",
+          title: "Gestão Financeira & Precificação para Salões e Barbearias",
           instructor: "Prof. Renato Mestre",
+          instructorEmail: "instrutor@kognus.com",
           school: "Escola do Renato Mestre",
           price: "197,00",
-          category: "Negócios",
-          image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80",
-          modules: []
+          category: "Gestão & Negócios",
+          image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80",
+          description: "Aprenda a precificar seus serviços, calcular custos de insumos e alcançar lucratividade acima de 40% ao mês.",
+          status: "Publicado",
+          studentsCount: 124,
+          modules: [
+            {
+              id: 3,
+              title: "Módulo Único: Estruturação Financeira de Sucesso",
+              lessons: [
+                { id: 5, title: "01. Custos Fixos vs Variáveis", duration: "25 min", youtubeId: "dQw4w9WgXcQ", pdf: "Planilha_Custos_Salão.pdf" },
+                { id: 6, title: "02. Calculadora de Lucro Líquido", duration: "20 min", youtubeId: "dQw4w9WgXcQ", pdf: "Calculadora_Preco_Sugerido.pdf" }
+              ]
+            }
+          ]
         }
       ],
       enrollments: [
-        { studentEmail: 'aluno@kognus.com', courseId: 1 }
+        { studentEmail: 'aluno@kognus.com', courseId: 1 },
+        { studentEmail: 'aluno@kognus.com', courseId: 2 }
+      ],
+      instructors: [
+        { id: 1, name: "Prof. Renato Mestre", email: "instrutor@kognus.com", school: "Escola do Renato Mestre", coursesCount: 2, status: "ativo", mrr: 89.90 },
+        { id: 2, name: "Carlos Barber", email: "carlos@barber.com", school: "Academia Barber Master", coursesCount: 1, status: "ativo", mrr: 89.90 },
+        { id: 3, name: "Juliana Estética", email: "juliana@estetica.com", school: "Instituto Juliana Pele", coursesCount: 3, status: "inadimplente", mrr: 89.90 }
       ]
     };
 
-    // 3. INICIALIZAÇÃO - GARANTE VISITANTE POR PADRÃO
+    // 3. INICIALIZAÇÃO DA APLICAÇÃO
     function initApp() {
-      // Se não houver sessão válida salva com JSON legítimo, limpa totalmente
-      try {
-        const raw = localStorage.getItem('kognus_session');
-        if (raw) {
-          currentUser = JSON.parse(raw);
-        } else {
+      const savedSession = localStorage.getItem('kognus_session');
+      if (savedSession) {
+        try {
+          currentUser = JSON.parse(savedSession);
+        } catch(e) {
           currentUser = null;
+          localStorage.clear();
         }
-      } catch (e) {
+      } else {
         currentUser = null;
-        localStorage.clear();
       }
 
       renderHeader();
-      navigateTo('landing');
+      if (currentUser) {
+        if (currentUser.must_change_password) {
+          navigateTo('first-login');
+        } else if (currentUser.role === 'admin') {
+          navigateTo('dashboard-admin');
+        } else if (currentUser.role === 'instrutor') {
+          navigateTo('dashboard-instrutor');
+        } else {
+          navigateTo('dashboard-aluno');
+        }
+      } else {
+        navigateTo('landing');
+      }
     }
 
-    // 4. ATUALIZAÇÃO REATIVA DO HEADER (SEM MOCK OU RESÍDUOS)
+    // 4. NOTIFICAÇÕES TOAST
+    function showToast(msg, type='info') {
+      const c = document.getElementById('toast-container');
+      if (!c) return;
+      const t = document.createElement('div');
+      const bg = type === 'error' ? 'bg-red-600 border-red-500' : (type === 'success' ? 'bg-emerald-600 border-emerald-500' : 'bg-brand-600 border-brand-500');
+      t.className = `${bg} text-white px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-2xl transition-all duration-300 transform translate-y-0 opacity-100 flex items-center space-x-2`;
+      t.innerHTML = `<span>${msg}</span>`;
+      c.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateY(10px)';
+        setTimeout(() => { t.remove(); }, 300);
+      }, 3500);
+    }
+
+    // 5. ATUALIZAÇÃO DO CABEÇALHO GLOBAL (HEADER)
     function renderHeader() {
-      const links = document.getElementById('nav-links');
+      const navLinks = document.getElementById('nav-links');
       const userArea = document.getElementById('nav-user-area');
+      if (!navLinks || !userArea) return;
 
       if (!currentUser) {
-        // MODO VISITANTE LIMPO
-        links.innerHTML = `
+        // --- ESTADO DESLOGADO (VISITANTE) ---
+        navLinks.innerHTML = `
           <button onclick="navigateTo('landing')" class="hover:text-white transition">Início</button>
-          <a href="#catalogo" onclick="navigateTo('landing')" class="hover:text-white transition">Cursos / Catálogo</a>
+          <button onclick="navigateTo('landing'); setTimeout(() => { document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' }); }, 50);" class="hover:text-white transition">Cursos / Catálogo</button>
           <button onclick="navigateTo('register-instructor')" class="hover:text-white transition">Para Instrutores</button>
         `;
 
@@ -163,307 +282,758 @@
           </button>
         `;
       } else {
-        // MODO LOGADO
-        let badgeColor = currentUser.role === 'admin' ? 'bg-red-500/20 text-red-400 border-red-500/30' : (currentUser.role === 'instrutor' ? 'bg-brand-500/20 text-brand-400 border-brand-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30');
-        let roleName = currentUser.role === 'admin' ? 'SuperAdmin' : (currentUser.role === 'instrutor' ? 'Instrutor' : 'Aluno');
+        // --- ESTADO LOGADO ---
+        let roleBadge = currentUser.role === 'admin' ? 'SuperAdmin' : (currentUser.role === 'instrutor' ? 'Instrutor' : 'Aluno');
+        let roleColor = currentUser.role === 'admin' 
+          ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+          : (currentUser.role === 'instrutor' ? 'bg-brand-500/20 text-brand-400 border-brand-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30');
 
-        links.innerHTML = `
-          <button onclick="navigateTo('landing')" class="hover:text-white transition">Catálogo</button>
-          ${currentUser.role === 'instrutor' ? `<button onclick="navigateTo('creator')" class="text-brand-400 font-bold hover:text-brand-300 transition">Creator Studio</button>` : ''}
-          ${currentUser.role === 'admin' ? `<button onclick="navigateTo('superadmin')" class="text-red-400 font-bold hover:text-red-300 transition">Painel SaaS</button>` : ''}
-        `;
+        if (currentUser.role === 'aluno') {
+          navLinks.innerHTML = `
+            <button onclick="navigateTo('dashboard-aluno')" class="text-brand-400 hover:text-white font-bold transition flex items-center gap-1.5"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Meu Painel de Estudos</button>
+            <button onclick="navigateTo('landing'); setTimeout(() => { document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' }); }, 50);" class="hover:text-white transition">Catálogo de Cursos</button>
+            <button onclick="navigateTo('player', { courseId: 1 })" class="hover:text-white transition">Sala de Aula</button>
+          `;
+        } else if (currentUser.role === 'instrutor') {
+          navLinks.innerHTML = `
+            <button onclick="navigateTo('dashboard-instrutor')" class="text-brand-400 hover:text-white font-bold transition flex items-center gap-1.5"><i data-lucide="sparkles" class="w-4 h-4"></i> Creator Studio</button>
+            <button onclick="navigateTo('dashboard-instrutor'); setTimeout(() => { document.getElementById('secao-escola')?.scrollIntoView({ behavior: 'smooth' }); }, 50);" class="hover:text-white transition">Meus Cursos</button>
+            <button onclick="navigateTo('landing')" class="hover:text-white transition">Catálogo</button>
+          `;
+        } else if (currentUser.role === 'admin') {
+          navLinks.innerHTML = `
+            <button onclick="navigateTo('dashboard-admin')" class="text-red-400 hover:text-white font-bold transition flex items-center gap-1.5"><i data-lucide="shield" class="w-4 h-4"></i> Visão Geral SaaS</button>
+            <button onclick="navigateTo('dashboard-admin'); setTimeout(() => { document.getElementById('gestao-escolas')?.scrollIntoView({ behavior: 'smooth' }); }, 50);" class="hover:text-white transition">Gestão de Escolas</button>
+          `;
+        }
 
         userArea.innerHTML = `
-          <div class="flex items-center space-x-3 bg-zinc-900/90 border border-darkBorder px-3 py-1.5 rounded-xl">
-            <div class="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center font-bold text-xs text-white">
+          <div class="flex items-center space-x-3 bg-zinc-900/80 border border-darkBorder px-3 py-1.5 rounded-xl">
+            <div class="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center font-bold text-xs text-white uppercase shadow-inner">
               ${(currentUser.name || 'U').charAt(0).toUpperCase()}
             </div>
             <div class="text-left hidden sm:block">
-              <p class="text-xs font-bold text-white leading-none">${currentUser.name}</p>
-              <span class="text-[9px] px-1.5 py-0.2 rounded border ${badgeColor} inline-block mt-0.5">${roleName}</span>
+              <p class="text-xs font-bold text-white leading-tight">${currentUser.name || 'Usuário'}</p>
+              <span class="text-[10px] px-1.5 py-0.2 rounded border ${roleColor}">${roleBadge}</span>
             </div>
-            <button onclick="logout()" title="Sair da Conta" class="text-zinc-400 hover:text-red-400 ml-2 transition">
+            <button onclick="logout()" title="Sair da Conta" class="text-zinc-400 hover:text-red-400 ml-1 p-1 rounded hover:bg-zinc-800 transition">
               <i data-lucide="log-out" class="w-4 h-4"></i>
             </button>
           </div>
         `;
       }
-      lucide.createIcons();
+
+      if (window.lucide) lucide.createIcons();
     }
 
-    // 5. LOGOUT DEFINITIVO (LIMPA TUDO E FORÇA VISITANTE)
-    function logout() {
-      localStorage.clear();
-      sessionStorage.clear();
-      currentUser = null;
-      renderHeader();
-      navigateTo('landing');
-      showToast('Sessão encerrada com sucesso.', 'info');
-    }
-
-    // 6. ROTEADOR DE TELAS
+    // 6. ROTEADOR DE TELAS SPA COM SUPORTE INTEGRAL AOS DASHBOARDS
     function navigateTo(view, params = {}) {
       currentView = view;
       const v = document.getElementById('app-viewport');
+      if (!v) return;
       window.scrollTo(0, 0);
 
+      // Verificação de Primeiro Acesso (Troca Obrigatória de Senha)
       if (currentUser && currentUser.must_change_password && view !== 'first-login') {
         navigateTo('first-login');
         return;
       }
 
-      switch (view) {
+      switch(view) {
         case 'landing':
-          v.innerHTML = renderLanding();
+          v.innerHTML = renderLandingPage();
+          break;
+        case 'dashboard-aluno':
+        case 'aluno-dash':
+          v.innerHTML = renderAlunoDashboard();
+          break;
+        case 'dashboard-instrutor':
+        case 'creator':
+        case 'instrutor-dash':
+          v.innerHTML = renderCreatorPage();
+          break;
+        case 'dashboard-admin':
+        case 'superadmin':
+        case 'admin-dash':
+          v.innerHTML = renderSuperAdminPage();
           break;
         case 'login':
-          v.innerHTML = renderLogin();
+          v.innerHTML = renderLoginPage();
           break;
         case 'register-instructor':
-          v.innerHTML = renderRegisterInstructor();
+          v.innerHTML = renderRegisterInstructorPage();
           break;
         case 'first-login':
-          v.innerHTML = renderFirstLogin();
+          v.innerHTML = renderFirstLoginPage();
           break;
         case 'checkout':
-          v.innerHTML = renderCheckout(params.courseId || 1);
+          v.innerHTML = renderCheckoutPage(params.courseId || 1);
           break;
         case 'purchase-success':
-          v.innerHTML = renderPurchaseSuccess(params.tempPass || 'TMP-849201');
+          v.innerHTML = renderPurchaseSuccessPage(params.tempPass || 'TMP-849201');
           break;
         case 'player':
-          v.innerHTML = renderPlayer(params.courseId || 1);
+          v.innerHTML = renderPlayerPage(params.courseId || 1);
           break;
         case 'certificate':
-          v.innerHTML = renderCertificate(params.courseId || 1);
-          break;
-        case 'creator':
-          v.innerHTML = renderCreator();
-          break;
-        case 'superadmin':
-          v.innerHTML = renderSuperAdmin();
+          v.innerHTML = renderCertificatePage(params.courseId || 1);
           break;
         case 'admin-expired':
-          v.innerHTML = renderAdminExpired();
+          v.innerHTML = renderAdminExpiredPage();
           break;
         default:
-          v.innerHTML = renderLanding();
+          v.innerHTML = renderLandingPage();
       }
-      lucide.createIcons();
+
+      if (window.lucide) lucide.createIcons();
     }
 
-    // 7. TOAST NOTIFICATIONS
-    function showToast(msg, type = 'info') {
-      const c = document.getElementById('toast-container');
-      const t = document.createElement('div');
-      const bg = type === 'error' ? 'bg-red-600 border-red-500' : (type === 'success' ? 'bg-emerald-600 border-emerald-500' : 'bg-brand-600 border-brand-500');
-      t.className = `${bg} text-white px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-2xl transition-all duration-300`;
-      t.innerHTML = msg;
-      c.appendChild(t);
-      setTimeout(() => { t.remove(); }, 3500);
+    // 7. CICLO DE VIDA DO LOGOUT RIGOROSO
+    function logout() {
+      // 1. Limpeza rigorosa de armazenamento local e de sessão
+      localStorage.clear();
+      sessionStorage.clear();
+      // 2. Redefinição reativa do estado global
+      currentUser = null;
+      // 3. Re-renderização imediata do cabeçalho
+      renderHeader();
+      // 4. Redirecionamento instantâneo para a vitrine de visitante
+      navigateTo('landing');
+      // 5. Toast de confirmação
+      showToast('Sessão encerrada com sucesso.', 'info');
     }
 
     // =========================================================================
-    // RENDERS DE TODAS AS TELAS
+    // RENDERS DOS DASHBOARDS E TELAS COMPLETAS
     // =========================================================================
 
-    function isEnrolled(courseId) {
-      if (!currentUser) return false;
-      return state.enrollments.some(e => e.studentEmail === currentUser.email && e.courseId === courseId);
+    // DASHBOARD DO ALUNO (PAINEL DE ESTUDOS)
+    function renderAlunoDashboard() {
+      const studentName = currentUser ? currentUser.name : "Lucas Mendes";
+      const studentEmail = currentUser ? currentUser.email : "aluno@kognus.com";
+
+      // Cursos do aluno
+      const enrolledCourses = state.courses.filter(c => 
+        state.enrollments.some(e => e.studentEmail === studentEmail && e.courseId === c.id)
+      );
+      const recommendedCourses = state.courses.filter(c => 
+        !state.enrollments.some(e => e.studentEmail === studentEmail && e.courseId === c.id)
+      );
+
+      // Total de aulas concluídas pelo aluno
+      const totalCompleted = completedLessons.length;
+
+      return `
+        <div class="space-y-8">
+          <!-- Boas-vindas Personalizadas -->
+          <div class="bg-gradient-to-r from-brand-900/60 via-darkCard to-darkCard border border-brand-500/30 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+            <div class="max-w-2xl space-y-2 relative z-10">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i> ÁREA DO ALUNO • KOGNUS LMS
+              </span>
+              <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight">Olá, ${studentName}! 👋</h1>
+              <p class="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                Bem-vindo ao seu ambiente exclusivo de estudos. Continue de onde parou, acompanhe o progresso das aulas e emita seus certificados com chancela oficial.
+              </p>
+            </div>
+          </div>
+
+          <!-- Barra de Estatísticas do Aluno -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg flex items-center space-x-4">
+              <div class="p-3 bg-brand-500/10 text-brand-400 rounded-xl border border-brand-500/20">
+                <i data-lucide="book-open" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <span class="text-[11px] font-semibold text-zinc-400 uppercase">Cursos Matriculados</span>
+                <p class="text-2xl font-black text-white mt-0.5">${enrolledCourses.length}</p>
+              </div>
+            </div>
+
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg flex items-center space-x-4">
+              <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <span class="text-[11px] font-semibold text-zinc-400 uppercase">Aulas Concluídas</span>
+                <p class="text-2xl font-black text-emerald-400 mt-0.5">${totalCompleted}</p>
+              </div>
+            </div>
+
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg flex items-center space-x-4">
+              <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                <i data-lucide="clock" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <span class="text-[11px] font-semibold text-zinc-400 uppercase">Horas Estimadas</span>
+                <p class="text-2xl font-black text-white mt-0.5">40h</p>
+              </div>
+            </div>
+
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg flex items-center space-x-4">
+              <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                <i data-lucide="award" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <span class="text-[11px] font-semibold text-zinc-400 uppercase">Certificados</span>
+                <p class="text-2xl font-black text-amber-400 mt-0.5">Disponível</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grade "Meus Cursos em Andamento" -->
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                  <i data-lucide="play-circle" class="w-5 h-5 text-brand-400"></i> Meus Cursos em Andamento
+                </h2>
+                <p class="text-xs text-zinc-400">Cursos nos quais sua matrícula está ativa e confirmada.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              ${enrolledCourses.map(course => {
+                const allCourseLessons = course.modules.flatMap(m => m.lessons);
+                const totalLessons = allCourseLessons.length || 1;
+                const completedInCourse = allCourseLessons.filter(l => completedLessons.includes(l.id)).length;
+                const pct = Math.round((completedInCourse / totalLessons) * 100);
+
+                return `
+                  <div class="bg-darkCard border border-darkBorder hover:border-brand-500/40 rounded-2xl overflow-hidden flex flex-col justify-between shadow-xl transition">
+                    <div class="relative">
+                      <img src="${course.image}" alt="${course.title}" class="h-48 w-full object-cover">
+                      <span class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded bg-brand-600 text-white uppercase tracking-wider">${course.category}</span>
+                      <span class="absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white shadow-md">✓ Acesso Liberado</span>
+                    </div>
+
+                    <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                      <div>
+                        <div class="text-[11px] font-semibold text-brand-400 mb-1">${course.school}</div>
+                        <h3 class="font-bold text-lg text-white leading-snug">${course.title}</h3>
+                        <p class="text-xs text-zinc-400 mt-1">Instrutor: ${course.instructor}</p>
+                      </div>
+
+                      <!-- Progresso -->
+                      <div class="space-y-1.5 pt-2 border-t border-darkBorder">
+                        <div class="flex justify-between text-xs font-semibold">
+                          <span class="text-zinc-400">${completedInCourse} de ${totalLessons} aulas concluídas</span>
+                          <span class="text-brand-400 font-bold">${pct}%</span>
+                        </div>
+                        <div class="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+                          <div class="bg-brand-500 h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center justify-between gap-3 pt-2">
+                        <button onclick="navigateTo('player', { courseId: ${course.id} })" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white text-xs py-2.5 rounded-lg font-bold flex items-center justify-center gap-1.5 transition shadow-lg shadow-brand-600/30">
+                          <i data-lucide="play" class="w-3.5 h-3.5"></i> Continuar Curso
+                        </button>
+                        <button onclick="navigateTo('certificate', { courseId: ${course.id} })" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs px-4 py-2.5 rounded-lg font-semibold flex items-center gap-1.5 border border-darkBorder transition">
+                          <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400"></i> Certificado
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Cursos Recomendados / Catálogo Extra -->
+          ${recommendedCourses.length > 0 ? `
+            <div class="space-y-4 pt-6 border-t border-darkBorder">
+              <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <i data-lucide="compass" class="w-5 h-5 text-zinc-400"></i> Cursos Recomendados para Você
+                </h3>
+                <p class="text-xs text-zinc-400">Amplie seu conhecimento com outros cursos oficiais da KOGNUS.</p>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                ${recommendedCourses.map(course => `
+                  <div class="bg-darkCard border border-darkBorder rounded-2xl overflow-hidden flex flex-col justify-between shadow-xl">
+                    <div class="relative">
+                      <img src="${course.image}" alt="${course.title}" class="h-44 w-full object-cover brightness-75">
+                      <span class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded bg-zinc-800 text-white uppercase">${course.category}</span>
+                      <div class="absolute inset-0 flex items-center justify-center"><div class="bg-black/75 p-2.5 rounded-full border border-zinc-700 text-white"><i data-lucide="lock" class="w-5 h-5"></i></div></div>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 class="font-bold text-base text-white">${course.title}</h4>
+                        <p class="text-xs text-zinc-400 mt-1">Escola: ${course.school}</p>
+                      </div>
+                      <div class="mt-4 pt-3 border-t border-darkBorder flex items-center justify-between">
+                        <span class="text-base font-black text-white">R$ ${course.price}</span>
+                        <button onclick="navigateTo('checkout', { courseId: ${course.id} })" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-4 py-2 rounded-lg font-bold transition">
+                          Matricular-se
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
     }
 
-    // TELA 1: LANDING & VITRINE
-    function renderLanding() {
+    // DASHBOARD DO INSTRUTOR (CREATOR STUDIO COMPLETO)
+    function renderCreatorPage() {
+      const instructorName = currentUser ? currentUser.name : 'Prof. Renato Mestre';
+      const instructorEmail = currentUser ? currentUser.email : 'instrutor@kognus.com';
+
+      return `
+        <div class="space-y-8">
+          <!-- Cabeçalho do Creator Studio -->
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 mb-1">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AMBIENTE DO INSTRUTOR • CREATOR STUDIO
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">Creator Studio • ${instructorName}</h1>
+              <p class="text-xs text-zinc-400">Painel financeiro, gestão de turmas, grade curricular e recebimento direto com 0% de comissão.</p>
+            </div>
+            <button onclick="toggleAddLessonForm()" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-brand-600/30">
+              <i data-lucide="plus" class="w-4 h-4"></i> Adicionar Módulo / Nova Aula
+            </button>
+          </div>
+
+          <!-- Status da Assinatura SaaS KOGNUS (R$ 89,90/mês) -->
+          <div class="bg-brand-500/10 border border-brand-500/30 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl">
+            <div class="flex items-center gap-3.5">
+              <div class="p-3 bg-brand-500/20 text-brand-400 rounded-xl"><i data-lucide="credit-card" class="w-6 h-6"></i></div>
+              <div>
+                <h3 class="font-bold text-base text-white">Mensalidade SaaS KOGNUS Pro (R$ 89,90/mês)</h3>
+                <p class="text-xs text-zinc-400">Status da Escola: <span class="text-emerald-400 font-bold">Adimplente / Ativo</span> • <strong class="text-white">0% de comissões</strong> retidas nas suas vendas de alunos.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Plano SaaS Regular
+              </span>
+            </div>
+          </div>
+
+          <!-- Métricas em Cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
+              <span class="text-[11px] font-semibold text-zinc-400 uppercase">Alunos Ativos</span>
+              <p class="text-2xl font-black text-white mt-1">342</p>
+              <span class="text-[10px] text-emerald-400">Total acumulado na escola</span>
+            </div>
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
+              <span class="text-[11px] font-semibold text-zinc-400 uppercase">Faturamento Bruto (100% Seu)</span>
+              <p class="text-2xl font-black text-emerald-400 mt-1">R$ 18.450,00</p>
+              <span class="text-[10px] text-zinc-500">Sem desconto de taxas</span>
+            </div>
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
+              <span class="text-[11px] font-semibold text-zinc-400 uppercase">Cursos Ativos</span>
+              <p class="text-2xl font-black text-white mt-1">${state.courses.length}</p>
+              <span class="text-[10px] text-zinc-400">Publicados no catálogo</span>
+            </div>
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
+              <span class="text-[11px] font-semibold text-zinc-400 uppercase">Taxa de Conclusão</span>
+              <p class="text-2xl font-black text-brand-400 mt-1">78%</p>
+              <span class="text-[10px] text-zinc-500">Média de engajamento</span>
+            </div>
+          </div>
+
+          <!-- Formulário Expansível: Criar Módulo / Nova Aula -->
+          ${showAddLessonForm ? `
+            <div class="bg-zinc-900 border border-brand-500/40 p-6 rounded-2xl space-y-4 shadow-2xl">
+              <div class="flex justify-between items-center border-b border-darkBorder pb-3">
+                <h3 class="font-bold text-base text-white flex items-center gap-2">
+                  <i data-lucide="plus-circle" class="w-5 h-5 text-brand-400"></i> Adicionar Nova Aula / Módulo
+                </h3>
+                <button onclick="toggleAddLessonForm()" class="text-zinc-400 hover:text-white text-xs">Cancelar</button>
+              </div>
+              <form onsubmit="handleSaveNewLesson(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-zinc-300 mb-1">Título do Módulo</label>
+                  <input type="text" id="nl-module-title" required value="Módulo Avançado de Prática" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-white">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-zinc-300 mb-1">Título da Aula</label>
+                  <input type="text" id="nl-lesson-title" required placeholder="Ex: 05. Demonstração Prática" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-white">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-zinc-300 mb-1">URL do Vídeo (YouTube)</label>
+                  <input type="text" id="nl-video-url" required value="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-white">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-zinc-300 mb-1">Nome do Arquivo PDF (Apostila)</label>
+                  <input type="text" id="nl-pdf-name" value="Material_Complementar.pdf" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-white">
+                </div>
+                <div class="sm:col-span-2 flex justify-end">
+                  <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-6 py-2.5 rounded-lg transition shadow-lg shadow-emerald-600/30">
+                    Salvar Aula na Grade
+                  </button>
+                </div>
+              </form>
+            </div>
+          ` : ''}
+
+          <!-- Seção Minha Escola & Gestão de Cursos -->
+          <div id="secao-escola" class="bg-darkCard border border-darkBorder p-6 rounded-2xl space-y-4 shadow-xl">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-bold text-base text-white">Cursos da Sua Escola Digital</h3>
+                <p class="text-xs text-zinc-400">Instrutor responsável: ${instructorEmail}</p>
+              </div>
+              <span class="text-xs bg-zinc-800 text-zinc-300 px-3 py-1 rounded-lg border border-darkBorder">${state.courses.length} Cursos Cadastrados</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              ${state.courses.map(c => `
+                <div class="p-5 bg-zinc-900 border border-darkBorder rounded-xl flex flex-col justify-between space-y-3">
+                  <div>
+                    <div class="flex justify-between items-start">
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 uppercase">${c.category}</span>
+                      <span class="text-[10px] font-bold text-emerald-400">✓ ${c.status || 'Publicado'}</span>
+                    </div>
+                    <h4 class="font-bold text-base text-white mt-1.5">${c.title}</h4>
+                    <p class="text-xs text-zinc-400 mt-1">${c.modules.length} Módulos • ${c.modules.flatMap(m => m.lessons).length} Aulas • R$ ${c.price}</p>
+                  </div>
+                  <div class="flex items-center gap-2 pt-2 border-t border-darkBorder/60">
+                    <button onclick="navigateTo('player', { courseId: ${c.id} })" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-xs py-2 rounded-lg font-semibold transition text-center">
+                      Ver Sala de Aula
+                    </button>
+                    <button onclick="navigateTo('landing')" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs px-3 py-2 rounded-lg font-semibold transition">
+                      Página de Vendas
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Integrações BYOG (Bring Your Own Gateway) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-darkCard border border-darkBorder p-6 rounded-2xl space-y-3 shadow-xl">
+              <h4 class="font-bold text-sm text-white flex items-center gap-2"><i data-lucide="link" class="w-4 h-4 text-brand-400"></i> Seus Checkouts Externos (100% Seu)</h4>
+              <p class="text-xs text-zinc-400">Insira a URL de checkout direto da Kiwify, Hotmart ou Stripe para vender este curso:</p>
+              <input type="text" id="cfg-checkout-url" value="https://pay.kiwify.com.br/exemplo-curso" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500">
+              <button onclick="showToast('Link de checkout salvo com sucesso!', 'success')" class="bg-zinc-800 text-white text-xs px-3.5 py-2 rounded-lg border border-darkBorder hover:bg-zinc-700 transition">Salvar Link</button>
+            </div>
+
+            <div class="bg-darkCard border border-darkBorder p-6 rounded-2xl space-y-3 shadow-xl">
+              <h4 class="font-bold text-sm text-white flex items-center gap-2"><i data-lucide="webhook" class="w-4 h-4 text-brand-400"></i> Webhook para Liberação Automática</h4>
+              <p class="text-xs text-zinc-400">Configure este endpoint no seu gateway para provisionar o aluno no ato do pagamento:</p>
+              <input type="text" readonly value="https://kognus.com/api/webhook/inst_9841" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-zinc-400 font-mono">
+              <button onclick="navigator.clipboard.writeText('https://kognus.com/api/webhook/inst_9841'); showToast('URL do Webhook copiada!', 'success')" class="bg-zinc-800 text-white text-xs px-3.5 py-2 rounded-lg border border-darkBorder hover:bg-zinc-700 transition flex items-center gap-1.5">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar URL do Webhook
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // PAINEL SUPERADMIN SAAS (GESTÃO GLOBAL)
+    function renderSuperAdminPage() {
+      return `
+        <div class="space-y-8">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 mb-1">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> PAINEL EXECUTIVO • SUPERADMIN KOGNUS
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">SuperAdmin SaaS KOGNUS</h1>
+              <p class="text-xs text-zinc-400">Métricas financeiras consolidadas, governança de escolas ativas e monitoramento de adimplência.</p>
+            </div>
+            <button onclick="navigateTo('admin-expired')" class="bg-zinc-800 border border-darkBorder text-xs text-zinc-300 hover:text-white px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
+              <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-red-400"></i> Simular Expiração de 30 Dias
+            </button>
+          </div>
+
+          <!-- Métricas de MRR -->
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
+              <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">MRR Consolidado</span>
+              <p class="text-3xl font-black mt-1 text-emerald-400">R$ 10.788,00</p>
+              <span class="text-[11px] text-zinc-500">120 Escolas ativas a R$ 89,90</span>
+            </div>
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
+              <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Escolas Adimplentes</span>
+              <p class="text-3xl font-black mt-1 text-white">120</p>
+              <span class="text-[11px] text-emerald-400">Cursos ativos na vitrine</span>
+            </div>
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
+              <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Inadimplentes (Congelados)</span>
+              <p class="text-3xl font-black mt-1 text-red-400">4 Escolas</p>
+              <span class="text-[11px] text-zinc-500">Cursos ocultados do catálogo</span>
+            </div>
+            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
+              <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Assinatura Fixa</span>
+              <p class="text-3xl font-black mt-1 text-white">R$ 89,90</p>
+              <span class="text-[11px] text-zinc-500">0% de comissão retida</span>
+            </div>
+          </div>
+
+          <!-- Gestão de Escolas Cadastradas -->
+          <div id="gestao-escolas" class="bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl">
+            <div class="px-6 py-4 border-b border-darkBorder flex justify-between items-center">
+              <h3 class="font-bold text-sm text-white">Escolas Cadastradas na Plataforma</h3>
+              <span class="text-xs text-zinc-400">Total: ${state.instructors.length} escolas monitoradas</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-zinc-300">
+                <thead class="bg-zinc-900/60 text-xs text-zinc-400 uppercase tracking-wider">
+                  <tr>
+                    <th class="px-6 py-3">Escola</th>
+                    <th class="px-6 py-3">Instrutor Titular</th>
+                    <th class="px-6 py-3">Cursos</th>
+                    <th class="px-6 py-3">Mensalidade</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3 text-right">Ação</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-darkBorder">
+                  ${state.instructors.map(inst => {
+                    const isAtivo = inst.status === 'ativo';
+                    return `
+                      <tr>
+                        <td class="px-6 py-4 font-bold text-white">${inst.school}</td>
+                        <td class="px-6 py-4 text-xs text-zinc-300">${inst.name} (${inst.email})</td>
+                        <td class="px-6 py-4 text-xs text-zinc-400">${inst.coursesCount || 1} Cursos</td>
+                        <td class="px-6 py-4 text-xs font-bold text-emerald-400">R$ 89,90/mês</td>
+                        <td class="px-6 py-4">
+                          <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isAtivo ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">
+                            ${isAtivo ? 'Ativo / Adimplente' : 'Inadimplente (Congelado)'}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                          <button onclick="toggleSchoolStatus('${inst.email}')" class="${isAtivo ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'} text-xs font-bold transition">
+                            ${isAtivo ? 'Congelar Escola' : 'Descongelar Escola'}
+                          </button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // TELA 1: LANDING PAGE & CATÁLOGO
+    function renderLandingPage() {
+      const isStudentEnrolled = (courseId) => {
+        if (!currentUser) return false;
+        return state.enrollments.some(e => e.studentEmail === currentUser.email && e.courseId === courseId);
+      };
+
       return `
         <div class="space-y-12">
-          <div class="text-center max-w-3xl mx-auto space-y-4 pt-4">
+          <!-- Hero Section -->
+          <div class="text-center max-w-3xl mx-auto space-y-4 pt-6">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-400 text-xs font-bold">
               SAAS DE ENSINO & MARKETPLACE INTEGRADO
             </div>
             <h1 class="text-4xl sm:text-6xl font-black tracking-tight leading-tight">
               Aprenda com mestres.<br>
-              <span class="bg-gradient-to-r from-brand-400 to-violet-500 bg-clip-text text-transparent">Monetize com escala.</span>
+              <span class="bg-gradient-to-r from-brand-400 via-indigo-400 to-violet-500 bg-clip-text text-transparent">Monetize com escala.</span>
             </h1>
-            <p class="text-zinc-400 text-sm sm:text-base">SaaS Puro: 0% de comissões sobre suas vendas. Mensalidade fixa de apenas R$ 89,90/mês para manter sua escola ativa com cursos ilimitados.</p>
+            <p class="text-zinc-400 text-base">SaaS Puro: 0% de comissões sobre suas vendas. Mensalidade fixa de apenas R$ 89,90/mês para manter sua escola ativa com alunos e cursos ilimitados.</p>
             <div class="flex justify-center gap-4 pt-2">
-              <a href="#catalogo" class="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition shadow-lg shadow-brand-600/30">
+              <button onclick="document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' });" class="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition shadow-lg shadow-brand-600/30">
                 Conhecer Cursos
-              </a>
+              </button>
               <button onclick="navigateTo('register-instructor')" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs px-6 py-3 rounded-xl border border-darkBorder transition">
                 Criar Minha Escola
               </button>
             </div>
           </div>
 
+          <!-- Grade de Cursos / Catálogo -->
           <div id="catalogo" class="pt-8">
-            <h2 class="text-xl font-bold text-white mb-6">Catálogo de Cursos Oficiais</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="flex justify-between items-end mb-6">
+              <div>
+                <h2 class="text-xl font-bold text-white">Catálogo de Cursos Oficiais</h2>
+                <p class="text-xs text-zinc-400 mt-1">Cursos práticos ministrados por instrutores certificados na plataforma KOGNUS.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
               ${state.courses.map(course => {
-        const enrolled = isEnrolled(course.id);
-        return `
-                  <div class="bg-darkCard border ${enrolled ? 'border-emerald-500/40' : 'border-darkBorder'} rounded-2xl overflow-hidden flex flex-col justify-between shadow-xl">
+                const enrolled = isStudentEnrolled(course.id);
+                return `
+                  <div class="bg-darkCard border ${enrolled ? 'border-emerald-500/40' : 'border-darkBorder'} rounded-2xl overflow-hidden flex flex-col justify-between shadow-xl transition hover:border-zinc-700">
                     <div class="relative">
-                      <img src="${course.image}" class="h-48 w-full object-cover ${!enrolled ? 'brightness-75' : ''}">
-                      <span class="absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded bg-brand-600 text-white uppercase">${course.category}</span>${enrolled
-            ? `<span class="absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">✓ Matriculado</span>`
-            : `<div class="absolute inset-0 flex items-center justify-center"><div class="bg-black/70 p-3 rounded-full border border-zinc-700 text-white"><i data-lucide="lock" class="w-6 h-6"></i></div></div>`
-          }
+                      <img src="${course.image}" alt="${course.title}" class="h-52 w-full object-cover ${!enrolled ? 'brightness-75' : ''}">
+                      <span class="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded bg-brand-600 text-white uppercase tracking-wider">${course.category}</span>
+                      ${enrolled 
+                        ? `<span class="absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white shadow-md">✓ Matriculado</span>` 
+                        : `<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="bg-black/75 p-3 rounded-full border border-zinc-700 text-white shadow-lg"><i data-lucide="lock" class="w-6 h-6"></i></div></div>`
+                      }
                     </div>
-                    <div class="p-5 flex-1 flex flex-col justify-between">
+                    <div class="p-6 flex-1 flex flex-col justify-between">
                       <div>
-                        <h3 class="font-bold text-base text-white">${course.title}</h3>
-                        <p class="text-xs text-zinc-400 mt-1">Instrutor: ${course.instructor}</p>
+                        <div class="text-[11px] font-semibold text-brand-400 mb-1">${course.school}</div>
+                        <h3 class="font-bold text-lg text-white leading-snug">${course.title}</h3>
+                        <p class="text-xs text-zinc-400 mt-2 leading-relaxed">${course.description}</p>
+                        <p class="text-xs text-zinc-500 mt-3 flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> Instrutor: ${course.instructor}</p>
                       </div>
                       <div class="mt-6 pt-4 border-t border-darkBorder flex items-center justify-between">
-                        ${enrolled
-            ? `<span class="text-xs font-semibold text-emerald-400">Liberado para você</span>
-                             <button onclick="navigateTo('player', { courseId: ${course.id} })" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2 rounded-lg font-bold flex items-center gap-1.5 transition">
-                               <i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Assistir
-                             </button>`
-            : `<div><span class="text-[10px] text-zinc-500 block">Preço</span><span class="font-extrabold text-lg text-white">R$ ${course.price}</span></div>
-                             <button onclick="navigateTo('checkout', { courseId: ${course.id} })" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-4 py-2 rounded-lg font-bold flex items-center gap-1.5 transition shadow-lg shadow-brand-600/20">
-                               <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Matricular-se
-                             </button>`
-          }
+                        <div>
+                          ${enrolled 
+                            ? `<span class="text-xs font-semibold text-emerald-400 flex items-center gap-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Acesso Liberado</span>` 
+                            : `<span class="text-lg font-black text-white">R$ ${course.price}</span>`
+                          }
+                        </div>
+                        <div>
+                          ${enrolled 
+                            ? `<button onclick="navigateTo('player', { courseId: ${course.id} })" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 transition">
+                                 Acessar Sala de Aula <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                               </button>`
+                            : `<button onclick="navigateTo('checkout', { courseId: ${course.id} })" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 transition shadow-lg shadow-brand-600/30">
+                                 Matricular-se <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                               </button>`
+                          }
+                        </div>
                       </div>
                     </div>
                   </div>
                 `;
-      }).join('')}
+              }).join('')}
             </div>
           </div>
         </div>
       `;
     }
 
-    // TELA 2: CHECKOUT
-    function renderCheckout(courseId) {
+    // TELA 2: CHECKOUT SIMPLIFICADO DO ALUNO
+    function renderCheckoutPage(courseId) {
       const course = state.courses.find(c => c.id === courseId) || state.courses[0];
+
       return `
-        <div class="max-w-xl mx-auto bg-darkCard border border-darkBorder p-8 rounded-2xl shadow-2xl">
-          <button onclick="navigateTo('landing')" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1 mb-4">
+        <div class="max-w-xl mx-auto space-y-6">
+          <button onclick="navigateTo('landing')" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1">
             <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar ao Catálogo
           </button>
-          <div class="flex items-center justify-between mb-6 pb-4 border-b border-darkBorder">
-            <div>
-              <span class="text-[10px] text-brand-400 font-bold uppercase tracking-wider">Gateway do Instrutor</span>
-              <h2 class="text-lg font-bold text-white mt-0.5">${course.title}</h2>
-              <p class="text-xs text-zinc-400">${course.school}</p>
-            </div>
-            <span class="text-2xl font-black text-white">R$ ${course.price}</span>
-          </div>
 
-          <form onsubmit="handleCheckout(event, ${course.id})" class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nome Completo</label>
-              <input type="text" id="chk-name" required placeholder="Digite seu nome" value="Lucas Mendes" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1">E-mail para Acesso</label>
-              <input type="email" id="chk-email" required placeholder="seu@email.com" value="lucas.aluno@gmail.com" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
-            </div>
-
-            <div class="pt-2">
-              <label class="block text-xs font-semibold text-zinc-300 mb-2">Forma de Pagamento</label>
-              <div class="grid grid-cols-2 gap-3">
-                <div class="border border-brand-500 bg-brand-500/10 text-white p-3 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold">
-                  <i data-lucide="qr-code" class="w-4 h-4 text-brand-400"></i> PIX Instantâneo
-                </div>
-                <div class="border border-darkBorder text-zinc-400 p-3 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold opacity-60">
-                  <i data-lucide="credit-card" class="w-4 h-4"></i> Cartão de Crédito
-                </div>
+          <div class="bg-darkCard border border-darkBorder p-8 rounded-2xl shadow-2xl">
+            <div class="border-b border-darkBorder pb-4 mb-6">
+              <span class="text-[10px] font-bold text-brand-400 uppercase tracking-wider">Checkout Seguro KOGNUS</span>
+              <h2 class="text-2xl font-black text-white mt-1">${course.title}</h2>
+              <div class="flex justify-between items-center text-xs text-zinc-400 mt-2">
+                <span>Escola: ${course.school}</span>
+                <span class="text-base font-bold text-emerald-400">Total: R$ ${course.price}</span>
               </div>
             </div>
 
-            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg shadow-emerald-600/20 transition mt-4">
-              Simular Webhook: Pagamento Confirmado
-            </button>
-          </form>
+            <form onsubmit="handleCheckoutSimulate(event, ${course.id})" class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Nome Completo do Aluno</label>
+                <input type="text" id="chk-name" required placeholder="Ex: Lucas Mendes de Souza" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">E-mail para Acesso ao Curso</label>
+                <input type="email" id="chk-email" required placeholder="lucas@exemplo.com" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+              </div>
+
+              <div class="p-3 bg-zinc-900/60 border border-darkBorder rounded-lg text-xs text-zinc-400 space-y-1">
+                <p class="font-bold text-zinc-300 flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> Pagamento Direto & Liberação Instantânea</p>
+                <p class="text-[11px]">Sua matrícula será ativada instantaneamente com geração de senha temporária provisória.</p>
+              </div>
+
+              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar Matrícula (Simular Webhook Gateway)
+              </button>
+            </form>
+          </div>
         </div>
       `;
     }
 
-    // TELA 3: SUCESSO DE COMPRA COM SENHA TEMPORÁRIA
-    function renderPurchaseSuccess(tempPass) {
+    // TELA 3: TELA DE BOAS-VINDAS PÓS-COMPRA
+    function renderPurchaseSuccessPage(tempPass) {
       return `
         <div class="max-w-md mx-auto bg-darkCard border border-darkBorder p-8 rounded-2xl shadow-2xl text-center">
           <div class="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-400">
             <i data-lucide="check" class="w-7 h-7"></i>
           </div>
-          <h2 class="text-xl font-bold text-white">Matrícula Confirmada!</h2>
-          <p class="text-xs text-zinc-400 mt-2">Sua conta de aluno foi gerada instantaneamente.</p>
+          <h2 class="text-2xl font-bold text-white">Matrícula Confirmada!</h2>
+          <p class="text-xs text-zinc-400 mt-2">Sua conta de aluno foi gerada pelo Webhook da KOGNUS.</p>
 
-          <div class="my-6 p-4 bg-zinc-900 border border-darkBorder rounded-xl text-center space-y-1">
-            <p class="text-[10px] uppercase font-bold text-zinc-500">Sua Senha Temporária</p>
-            <p class="text-2xl font-mono font-black text-brand-400 tracking-wider">${tempPass}</p>
-            <p class="text-[11px] text-zinc-400">Você será solicitado a alterar essa senha no primeiro login.</p>
+          <div class="my-6 p-4 bg-zinc-900 border border-darkBorder rounded-xl text-center space-y-2">
+            <p class="text-[10px] uppercase font-bold text-zinc-400">Sua Senha Provisória de Acesso</p>
+            <p class="text-2xl font-mono font-black text-brand-400 tracking-wider select-all">${tempPass}</p>
+            <p class="text-[11px] text-zinc-400">No primeiro acesso, você definirá sua senha pessoal definitiva.</p>
           </div>
 
-          <button onclick="navigateTo('login')" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-bold text-sm transition shadow-lg shadow-brand-600/30">
-            Fazer Primeiro Acesso
+          <button onclick="navigateTo('login')" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-bold text-sm transition shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2">
+            Acessar com Senha Provisória <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </button>
         </div>
       `;
     }
 
-    // TELA 4: PRIMEIRO ACESSO (TROCA OBRIGATÓRIA)
-    function renderFirstLogin() {
+    // TELA 4: TROCA OBRIGATÓRIA DE SENHA (1º ACESSO)
+    function renderFirstLoginPage() {
       return `
         <div class="max-w-md mx-auto bg-darkCard border border-darkBorder p-8 rounded-2xl shadow-2xl">
           <div class="text-center mb-6">
+            <img src="logo.png" alt="KOGNUS" class="h-10 w-auto mx-auto mb-2 object-contain" onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=K'">
             <h2 class="text-xl font-bold text-white">Defina sua Senha Pessoal</h2>
-            <p class="text-xs text-zinc-400 mt-1">Por segurança, troque a senha provisória pela sua definitiva.</p>
+            <p class="text-xs text-zinc-400 mt-1">Este é o seu primeiro acesso. Cadastre sua senha definitiva para desbloquear a sala de aula.</p>
           </div>
 
-          <form onsubmit="handlePassChange(event)" class="space-y-4">
+          <form onsubmit="handlePasswordChange(event)" class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nova Senha</label>
-              <input type="password" id="np-1" required placeholder="••••••••" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nova Senha Definitiva</label>
+              <input type="password" id="new-pass" required placeholder="Mínimo de 6 caracteres" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1">Confirmar Nova Senha</label>
-              <input type="password" id="np-2" required placeholder="••••••••" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Confirme a Nova Senha</label>
+              <input type="password" id="confirm-pass" required placeholder="Repita a senha" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
             </div>
-            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-bold text-sm transition">
-              Salvar e Entrar na Sala de Aula
+            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-bold text-sm transition shadow-lg shadow-brand-600/30">
+              Salvar Senha & Acessar Sala de Aula
             </button>
           </form>
         </div>
       `;
     }
 
-    // TELA 5: LOGIN UNIFICADO
-    function renderLogin() {
+    // TELA 5: LOGIN UNIFICADO COM BOTÕES RÁPIDOS
+    function renderLoginPage() {
       return `
         <div class="max-w-md mx-auto bg-darkCard border border-darkBorder p-8 rounded-2xl shadow-2xl">
           <div class="text-center mb-6">
+            <img src="logo.png" alt="KOGNUS" class="h-10 w-auto mx-auto mb-2 object-contain" onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=K'">
             <h2 class="text-xl font-bold text-white">Acessar KOGNUS</h2>
-            <p class="text-xs text-zinc-400 mt-1">Informe seu e-mail e senha cadastrados</p>
+            <p class="text-xs text-zinc-400 mt-1">Entre na sua conta para continuar</p>
           </div>
 
-          <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+          <form onsubmit="handleLogin(event)" class="space-y-4">
             <div>
               <label class="block text-xs font-semibold text-zinc-300 mb-1">E-mail</label>
-              <input type="email" id="log-email" required placeholder="seu@email.com" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+              <input type="email" id="login-email" required placeholder="seu@email.com" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
             </div>
             <div>
               <label class="block text-xs font-semibold text-zinc-300 mb-1">Senha</label>
-              <input type="password" id="log-pass" required placeholder="••••••••" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+              <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
             </div>
-            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-bold text-sm transition">
-              Entrar
+            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-bold text-sm transition shadow-lg shadow-brand-600/30">
+              Entrar na Plataforma
             </button>
 
-            <div class="p-3 bg-zinc-900/60 border border-darkBorder rounded-lg text-[11px] text-zinc-400 space-y-1.5 mt-4">
-              <p class="font-bold text-zinc-300">Contas padrão para testes imediatos:</p>
-              <div class="flex justify-between items-center cursor-pointer hover:text-white" onclick="setLog('aluno@kognus.com', '123456')">
-                <span>Aluno: <code>aluno@kognus.com</code></span> <span class="text-brand-400 font-semibold">Usar</span>
+            <!-- Credenciais de Teste Rápidas -->
+            <div class="p-3.5 bg-zinc-900/70 border border-darkBorder rounded-xl text-[11px] text-zinc-400 space-y-1.5 mt-5">
+              <p class="font-bold text-zinc-300 flex items-center gap-1"><i data-lucide="key" class="w-3.5 h-3.5 text-brand-400"></i> Contas padrão para validação imediata:</p>
+              <div class="flex justify-between items-center cursor-pointer hover:text-white p-1 rounded hover:bg-zinc-800 transition" onclick="fillLogin('aluno@kognus.com', '123456')">
+                <span>Aluno: <code class="text-zinc-300">aluno@kognus.com</code></span> <span class="text-brand-400 font-bold">Usar</span>
               </div>
-              <div class="flex justify-between items-center cursor-pointer hover:text-white" onclick="setLog('instrutor@kognus.com', '123456')">
-                <span>Instrutor: <code>instrutor@kognus.com</code></span> <span class="text-brand-400 font-semibold">Usar</span>
+              <div class="flex justify-between items-center cursor-pointer hover:text-white p-1 rounded hover:bg-zinc-800 transition" onclick="fillLogin('instrutor@kognus.com', '123456')">
+                <span>Instrutor: <code class="text-zinc-300">instrutor@kognus.com</code></span> <span class="text-brand-400 font-bold">Usar</span>
               </div>
-              <div class="flex justify-between items-center cursor-pointer hover:text-white" onclick="setLog('admin@kognus.com', 'admin123')">
-                <span>SuperAdmin: <code>admin@kognus.com</code></span> <span class="text-brand-400 font-semibold">Usar</span>
+              <div class="flex justify-between items-center cursor-pointer hover:text-white p-1 rounded hover:bg-zinc-800 transition" onclick="fillLogin('admin@kognus.com', 'admin123')">
+                <span>SuperAdmin: <code class="text-zinc-300">admin@kognus.com</code></span> <span class="text-brand-400 font-bold">Usar</span>
               </div>
             </div>
           </form>
@@ -471,24 +1041,32 @@
       `;
     }
 
-    // TELA 6: EXPIRAÇÃO DE SENHA SUPERADMIN (30 DIAS)
-    function renderAdminExpired() {
+    // TELA 6: BLOQUEIO DE EXPIRAÇÃO SUPERADMIN (30 DIAS)
+    function renderAdminExpiredPage() {
       return `
-        <div class="max-w-md mx-auto bg-darkCard border border-red-500/40 p-8 rounded-2xl shadow-2xl text-center space-y-4">
-          <div class="w-12 h-12 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto text-red-500">
+        <div class="max-w-md mx-auto bg-darkCard border border-red-500/40 p-8 rounded-2xl shadow-2xl">
+          <div class="w-12 h-12 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-3 text-red-500">
             <i data-lucide="shield-alert" class="w-6 h-6"></i>
           </div>
-          <div>
-            <h2 class="text-xl font-bold text-white">Credenciais Expiradas (30 Dias)</h2>
-            <p class="text-xs text-zinc-400 mt-1">Por conformidade de segurança SaaS, atualize a senha do SuperAdmin.</p>
+          <div class="text-center mb-6">
+            <h2 class="text-xl font-bold text-white">Sua Senha de Admin Expirou</h2>
+            <span class="inline-block mt-1 text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
+              Política de Segurança: Renovação a cada 30 dias
+            </span>
+            <p class="text-xs text-zinc-400 mt-2">Por diretrizes de segurança da KOGNUS, renove suas credenciais para continuar administrando.</p>
           </div>
-          <form onsubmit="handleAdminPass(event)" class="space-y-3 text-left">
+
+          <form onsubmit="handleAdminPasswordRenew(event)" class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nova Senha</label>
-              <input type="password" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2 text-sm text-white">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Senha Atual de Administrador</label>
+              <input type="password" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
             </div>
-            <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs transition">
-              Atualizar Credencial
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nova Senha Forte</label>
+              <input type="password" required class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+            </div>
+            <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg shadow-red-600/30 transition">
+              Atualizar Senha & Liberar Painel SaaS
             </button>
           </form>
         </div>
@@ -496,113 +1074,154 @@
     }
 
     // TELA 7: CADASTRO EXCLUSIVO DE INSTRUTOR
-    function renderRegisterInstructor() {
+    function renderRegisterInstructorPage() {
       return `
         <div class="max-w-md mx-auto bg-darkCard border border-darkBorder p-8 rounded-2xl shadow-2xl">
           <div class="text-center mb-6">
-            <h2 class="text-xl font-bold text-white">Criar Minha Escola na KOGNUS</h2>
-            <p class="text-xs text-zinc-400 mt-1">Monetize seus cursos com 0% de comissões (SaaS R$ 89,90/mês).</p>
+            <img src="logo.png" alt="KOGNUS" class="h-10 w-auto mx-auto mb-2 object-contain" onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=K'">
+            <h2 class="text-xl font-bold text-white">Crie sua Escola na KOGNUS</h2>
+            <p class="text-xs text-zinc-400 mt-1">Ambiente exclusivo de instrutores. Monetize seus cursos sem comissões (SaaS R$ 89,90/mês).</p>
           </div>
 
-          <form onsubmit="handleInstructorReg(event)" class="space-y-4">
+          <form onsubmit="handleInstructorRegister(event)" class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nome Completo</label>
-              <input type="text" id="ins-name" required placeholder="Prof. Renato Mestre" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nome Completo do Instrutor</label>
+              <input type="text" id="inst-name" required placeholder="Prof. Renato Mestre" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nome da Escola</label>
-              <input type="text" id="ins-school" required placeholder="Academia da Beleza" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Nome da sua Escola / Academia</label>
+              <input type="text" id="inst-school" required placeholder="Ex: Escola do Renato Mestre" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
             </div>
             <div>
               <label class="block text-xs font-semibold text-zinc-300 mb-1">E-mail Profissional</label>
-              <input type="email" id="ins-email" required placeholder="renato@escola.com" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+              <input type="email" id="inst-email" required placeholder="renato@escola.com" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-zinc-300 mb-1">Senha</label>
-              <input type="password" id="ins-pass" required placeholder="••••••••" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Senha de Acesso</label>
+              <input type="password" id="inst-pass" required placeholder="••••••••" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
             </div>
-            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-bold text-sm transition">
-              Ativar Minha Escola
+
+            <div class="p-3 bg-brand-500/10 border border-brand-500/30 rounded-lg text-xs text-zinc-400 space-y-1">
+              <p class="font-bold text-brand-300">0% de Comissão nas suas vendas</p>
+              <p class="text-[11px]">Taxa fixa mensal de R$ 89,90 para cursos ilimitados, certificados autenticados e hospedagem de aulas.</p>
+            </div>
+
+            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg shadow-brand-600/30 transition">
+              Criar Minha Escola & Abrir Creator Studio
             </button>
           </form>
         </div>
       `;
     }
 
-    // TELA 8: PLAYER LMS COM ACORDEÃO
-    function renderPlayer(courseId) {
+    // TELA 8: PLAYER LMS MODERNO (COM ACORDEÃO E YOUTUBE EMBED)
+    function renderPlayerPage(courseId) {
       const course = state.courses.find(c => c.id === courseId) || state.courses[0];
       const activeLesson = selectedLesson || (course.modules[0] ? course.modules[0].lessons[0] : null);
 
+      // Calcula progresso
+      const allLessons = course.modules.flatMap(m => m.lessons);
+      const totalCount = allLessons.length || 1;
+      const completedCount = allLessons.filter(l => completedLessons.includes(l.id)).length;
+      const progressPct = Math.round((completedCount / totalCount) * 100);
+
       return `
         <div class="space-y-6">
-          <div class="p-4 bg-zinc-900 border border-darkBorder rounded-xl flex justify-between items-center">
+          <!-- Banner Superior da Escola -->
+          <div class="p-4 bg-zinc-900 border border-darkBorder rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <span class="text-[10px] font-bold text-brand-400 uppercase tracking-wider">Sala de Aula</span>
-              <h2 class="text-xl font-bold text-white">${course.school} - ${course.title}</h2>
+              <span class="text-[10px] font-bold text-brand-400 uppercase tracking-wider">Sala de Aula • Ambiente do Aluno</span>
+              <h2 class="text-xl font-bold text-white">${course.school}</h2>
+              <p class="text-xs text-zinc-400">${course.title}</p>
             </div>
-            <button onclick="navigateTo('certificate', { courseId: ${course.id} })" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition">
-              <i data-lucide="award" class="w-4 h-4"></i> Certificado
-            </button>
+            <div class="flex items-center gap-4">
+              <div class="text-right hidden sm:block">
+                <span class="text-xs font-bold text-zinc-300">${progressPct}% Concluído</span>
+                <div class="w-32 bg-zinc-800 rounded-full h-2 mt-1 overflow-hidden">
+                  <div class="bg-brand-500 h-full rounded-full transition-all duration-500" style="width: ${progressPct}%"></div>
+                </div>
+              </div>
+              <button onclick="navigateTo('certificate', { courseId: ${course.id} })" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-2 transition shadow-md">
+                <i data-lucide="award" class="w-4 h-4"></i> Certificado
+              </button>
+            </div>
           </div>
 
+          <!-- Grade Principal: Player + Acordeão -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Player de Vídeo e Detalhes da Aula -->
             <div class="lg:col-span-2 space-y-4">
-              <div class="aspect-video bg-black rounded-2xl overflow-hidden border border-darkBorder shadow-2xl">
-                <iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${activeLesson ? activeLesson.youtubeId : 'dQw4w9WgXcQ'}" frameborder="0" allowfullscreen></iframe>
+              <div class="aspect-video bg-black rounded-2xl overflow-hidden border border-darkBorder shadow-2xl relative">
+                <iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${activeLesson ? activeLesson.youtubeId : 'dQw4w9WgXcQ'}?autoplay=0" title="${activeLesson ? activeLesson.title : 'Aula'}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
               </div>
 
-              <div class="bg-darkCard border border-darkBorder rounded-xl p-6">
-                <div class="flex justify-between items-start">
+              <div class="bg-darkCard border border-darkBorder rounded-2xl p-6">
+                <div class="flex justify-between items-start gap-4">
                   <div>
                     <h3 class="text-xl font-bold text-white">${activeLesson ? activeLesson.title : 'Selecione uma aula'}</h3>
-                    <p class="text-xs text-zinc-400 mt-1">Duração: ${activeLesson ? activeLesson.duration : '0 min'}</p>
+                    <p class="text-xs text-zinc-400 mt-1">Duração: ${activeLesson ? activeLesson.duration : '0 min'} • Instrutor: ${course.instructor}</p>
                   </div>
-                  <button onclick="toggleDone(${activeLesson ? activeLesson.id : 0})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5">
-                    <i data-lucide="check-circle" class="w-4 h-4"></i> Marcar Concluída
+                  <button onclick="toggleLessonComplete(${activeLesson ? activeLesson.id : 0}, ${course.id})" class="${activeLesson && completedLessons.includes(activeLesson.id) ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'} text-xs px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="${activeLesson && completedLessons.includes(activeLesson.id) ? 'check-circle' : 'circle'}" class="w-4 h-4"></i>
+                    ${activeLesson && completedLessons.includes(activeLesson.id) ? 'Concluída' : 'Marcar como Concluída'}
                   </button>
                 </div>
 
                 ${activeLesson && activeLesson.pdf ? `
                   <div class="mt-6 pt-6 border-t border-darkBorder flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                      <div class="p-2 bg-brand-500/10 text-brand-400 rounded-lg"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+                      <div class="p-2.5 bg-brand-500/10 border border-brand-500/20 rounded-xl text-brand-400">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                      </div>
                       <div>
                         <p class="text-xs font-bold text-white">${activeLesson.pdf}</p>
-                        <p class="text-[10px] text-zinc-500">Material complementar</p>
+                        <p class="text-[10px] text-zinc-500">Material complementar oficial em PDF</p>
                       </div>
                     </div>
-                    <button onclick="showToast('Download do PDF iniciado!')" class="bg-zinc-800 hover:bg-zinc-700 text-white text-xs px-3 py-1.5 rounded-lg border border-darkBorder flex items-center gap-1">
-                      <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar PDF
+                    <button onclick="showToast('Download do PDF iniciado!')" class="bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold px-4 py-2 rounded-lg border border-darkBorder flex items-center gap-1.5 transition">
+                      <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar Apostila
                     </button>
                   </div>
                 ` : ''}
               </div>
             </div>
 
-            <!-- Acordeão de Módulos -->
-            <div class="bg-darkCard border border-darkBorder rounded-2xl p-4 h-fit space-y-3">
-              <h4 class="font-bold text-sm text-white flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4 text-brand-400"></i> Conteúdo Programático</h4>
-              <div class="space-y-2">
-                ${course.modules.map(mod => `
-                  <div class="border border-darkBorder rounded-xl overflow-hidden">
-                    <div class="bg-zinc-900 px-3 py-2 text-xs font-bold text-zinc-300 flex justify-between">
-                      <span>${mod.title}</span>
-                      <span class="text-[10px] text-zinc-500">${mod.lessons.length} aulas</span>
-                    </div>
-                    <div class="p-1.5 space-y-1 bg-zinc-950">
-                      ${mod.lessons.map(les => `
-                        <div onclick="pickLesson(${course.id}, ${les.id})" class="p-2 rounded-lg flex items-center justify-between text-xs cursor-pointer ${activeLesson && activeLesson.id === les.id ? 'bg-brand-500/20 text-brand-300 font-bold' : 'text-zinc-300 hover:bg-zinc-900'}">
-                          <span class="flex items-center gap-2">
-                            <i data-lucide="${completedLessons.includes(les.id) ? 'check-circle' : 'play'}" class="w-3.5 h-3.5 ${completedLessons.includes(les.id) ? 'text-emerald-400' : ''}"></i>
-                            ${les.title}
-                          </span>
-                          <span class="text-[10px] text-zinc-500">${les.duration}</span>
+            <!-- Grade Lateral (Acordeão de Módulos e Aulas) -->
+            <div class="bg-darkCard border border-darkBorder rounded-2xl p-5 h-fit space-y-4">
+              <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i> Grade Curricular do Curso
+              </h4>
+
+              <div class="space-y-3">
+                ${course.modules.map(mod => {
+                  const isOpen = openAccordionModules[mod.id] !== false;
+                  return `
+                    <div class="border border-darkBorder rounded-xl overflow-hidden">
+                      <button onclick="toggleAccordion(${mod.id})" class="w-full bg-zinc-900/90 hover:bg-zinc-850 px-4 py-3 flex justify-between items-center text-xs font-bold text-zinc-200 transition text-left">
+                        <span>${mod.title}</span>
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] text-zinc-500 font-mono">${mod.lessons.length} aulas</span>
+                          <i data-lucide="${isOpen ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-zinc-400"></i>
                         </div>
-                      `).join('')}
+                      </button>
+                      <div class="${isOpen ? 'block' : 'hidden'} p-2 space-y-1 bg-zinc-950/70 border-t border-darkBorder/60">
+                        ${mod.lessons.map(les => {
+                          const isCurrent = activeLesson && activeLesson.id === les.id;
+                          const isDone = completedLessons.includes(les.id);
+                          return `
+                            <div onclick="selectLesson(${course.id}, ${les.id})" class="p-2.5 rounded-lg flex items-center justify-between text-xs cursor-pointer transition ${isCurrent ? 'bg-brand-500/20 text-brand-300 font-bold border border-brand-500/40' : 'text-zinc-300 hover:bg-zinc-900'}">
+                              <span class="flex items-center gap-2">
+                                <i data-lucide="${isDone ? 'check-circle' : 'play'}" class="w-3.5 h-3.5 ${isDone ? 'text-emerald-400' : 'text-zinc-500'}"></i>
+                                ${les.title}
+                              </span>
+                              <span class="text-[10px] text-zinc-500">${les.duration}</span>
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
                     </div>
-                  </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             </div>
           </div>
@@ -610,111 +1229,56 @@
       `;
     }
 
-    // TELA 9: CERTIFICADO DE CONCLUSÃO
-    function renderCertificate(courseId) {
+    // TELA 9: CERTIFICADO DE CONCLUSÃO OFICIAL
+    function renderCertificatePage(courseId) {
       const course = state.courses.find(c => c.id === courseId) || state.courses[0];
+      const studentName = currentUser ? currentUser.name : "Lucas Mendes de Souza";
+      const authCode = 'AUTH-KOGNUS-#KOG-' + Math.floor(100000 + Math.random() * 900000) + '-BR';
+
       return `
-        <div class="max-w-3xl mx-auto space-y-4">
-          <button onclick="navigateTo('player', { courseId: ${course.id} })" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar à Sala de Aula
-          </button>
-          <div class="bg-zinc-950 border-4 border-amber-600/40 p-8 rounded-2xl shadow-2xl text-center space-y-5">
-            <div class="flex justify-between items-center border-b border-darkBorder pb-3">
-              <span class="font-black text-white text-lg tracking-tight">KOGNUS</span>
-              <span class="text-xs font-mono text-zinc-400">CERTIFICADO OFICIAL #KOG-94821</span>
-            </div>
-            <h2 class="text-3xl font-serif font-black text-amber-300 tracking-wider">CERTIFICADO DE CONCLUSÃO</h2>
-            <p class="text-xs text-zinc-400">Certificamos com honras que</p>
-            <h3 class="text-2xl font-bold text-white uppercase">${currentUser ? currentUser.name : 'Lucas Mendes'}</h3>
-            <p class="text-xs text-zinc-300 max-w-lg mx-auto">
-              Concluiu com êxito todas as atividades curriculares do curso <strong class="text-white">${course.title}</strong>, ministrado pela instituição <strong class="text-white">${course.school}</strong>, totalizando 40 horas aula.
-            </p>
-            <div class="pt-6 border-t border-darkBorder flex justify-between text-xs text-zinc-400">
-              <span>Instrutor: ${course.instructor}</span>
-              <span>Emissão: Setembro / 2026</span>
-            </div>
-            <button onclick="window.print()" class="bg-zinc-800 text-white text-xs px-4 py-2 rounded-lg border border-darkBorder hover:bg-zinc-700">Imprimir / Salvar em PDF</button>
-          </div>
-        </div>
-      `;
-    }
-
-    // TELA 10: CREATOR STUDIO
-    function renderCreator() {
-      return `
-        <div class="space-y-6">
-          <div>
-            <h1 class="text-2xl font-black text-white">Creator Studio - ${currentUser ? currentUser.name : 'Instrutor'}</h1>
-            <p class="text-xs text-zinc-400">Gerencie sua escola com 0% de comissão sobre vendas.</p>
-          </div>
-
-          <div class="bg-brand-500/10 border border-brand-500/30 rounded-2xl p-5 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-              <div class="p-2.5 bg-brand-500/20 text-brand-400 rounded-xl"><i data-lucide="check-shield" class="w-5 h-5"></i></div>
-              <div>
-                <h4 class="font-bold text-sm text-white">Plano Mensal SaaS Ativo (R$ 89,90/mês)</h4>
-                <p class="text-xs text-zinc-400">Sua escola está no ar e liberada para matrículas ilimitadas.</p>
-              </div>
-            </div>
-            <span class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Adimplente</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl space-y-3">
-              <h4 class="font-bold text-sm text-white flex items-center gap-2"><i data-lucide="link" class="w-4 h-4 text-brand-400"></i> Gateway Próprio (BYOG)</h4>
-              <p class="text-xs text-zinc-400">Cole o link da sua página de vendas na Hotmart, Kiwify ou Stripe.</p>
-              <input type="text" value="https://pay.kiwify.com.br/meu-curso-exemplo" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3 py-2 text-xs text-white">
-              <button onclick="showToast('Link de vendas salvo com sucesso!', 'success')" class="bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-lg border border-darkBorder">Salvar Link</button>
-            </div>
-            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl space-y-3">
-              <h4 class="font-bold text-sm text-white flex items-center gap-2"><i data-lucide="webhook" class="w-4 h-4 text-brand-400"></i> Webhook de Liberação Automática</h4>
-              <p class="text-xs text-zinc-400">URL para cadastro automático de alunos após aprovação da compra.</p>
-              <input type="text" readonly value="https://kognus.com/api/webhook/inst_984" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3 py-2 text-xs text-zinc-400 font-mono">
-              <button onclick="showToast('URL do webhook copiada!');" class="bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-lg border border-darkBorder">Copiar URL</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // TELA 11: SUPERADMIN SAAS
-    function renderSuperAdmin() {
-      return `
-        <div class="space-y-6">
+        <div class="max-w-4xl mx-auto space-y-6">
           <div class="flex justify-between items-center">
-            <div>
-              <h1 class="text-2xl font-black text-white">Painel SuperAdmin SaaS</h1>
-              <p class="text-xs text-zinc-400">Gestão de assinaturas e receita recorrente (R$ 89,90/mês).</p>
-            </div>
-            <button onclick="navigateTo('admin-expired')" class="bg-zinc-800 border border-darkBorder text-xs text-zinc-400 px-3 py-1.5 rounded-lg">
-              Simular Bloqueio 30 Dias
+            <button onclick="navigateTo('player', { courseId: ${course.id} })" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1">
+              <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar para a Sala de Aula
+            </button>
+            <button onclick="window.print()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition shadow-lg shadow-brand-600/30">
+              <i data-lucide="printer" class="w-4 h-4"></i> Imprimir / Salvar em PDF
             </button>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl">
-              <span class="text-xs font-bold text-zinc-400 uppercase">MRR SaaS Consolidado</span>
-              <p class="text-3xl font-black mt-1 text-emerald-400">R$ 10.788,00</p>
-              <span class="text-[11px] text-zinc-500">120 Escolas ativas</span>
+          <!-- Documento do Certificado -->
+          <div id="printable-cert" class="bg-zinc-950 border-4 border-amber-600/40 p-10 sm:p-14 rounded-3xl shadow-2xl text-center space-y-6 relative overflow-hidden">
+            <div class="flex justify-between items-center border-b border-darkBorder pb-4">
+              <div class="flex items-center space-x-2">
+                <img src="logo.png" alt="KOGNUS" class="h-8 w-auto object-contain" onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=K'">
+                <span class="font-black text-lg text-white">KOGNUS</span>
+              </div>
+              <span class="text-xs font-mono text-zinc-400">CHANCELA DE AUTENTICIDADE: ${authCode}</span>
             </div>
-            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl">
-              <span class="text-xs font-bold text-zinc-400 uppercase">Inadimplentes (Congelados)</span>
-              <p class="text-3xl font-black mt-1 text-red-400">4 Escolas</p>
-              <span class="text-[11px] text-zinc-500">Cursos ocultados do catálogo</span>
-            </div>
-            <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl">
-              <span class="text-xs font-bold text-zinc-400 uppercase">Mensalidade Fixa</span>
-              <p class="text-3xl font-black mt-1 text-white">R$ 89,90</p>
-              <span class="text-[11px] text-zinc-500">0% de comissão retida</span>
-            </div>
-          </div>
 
-          <div class="bg-darkCard border border-darkBorder rounded-2xl p-5">
-            <h4 class="font-bold text-sm text-white mb-4">Escolas Cadastradas</h4>
-            <div class="flex justify-between items-center py-2 border-b border-darkBorder text-xs">
-              <span class="font-bold text-white">Escola do Renato Mestre</span>
-              <span class="text-emerald-400 font-semibold">Ativo (R$ 89,90/mês)</span>
-              <button onclick="showToast('Escola congelada!')" class="text-red-400 font-bold hover:underline">Congelar</button>
+            <div class="space-y-1">
+              <h2 class="text-3xl sm:text-4xl font-serif font-black tracking-widest text-amber-300 uppercase">Certificado de Conclusão</h2>
+              <p class="text-xs text-zinc-400">Reconhecimento oficial de aproveitamento curricular com chancela KOGNUS</p>
+            </div>
+
+            <div class="py-4">
+              <p class="text-xs text-zinc-400 uppercase tracking-widest">Certificamos com distinção que</p>
+              <h3 class="text-2xl sm:text-3xl font-bold text-white tracking-wide uppercase mt-2 font-serif">${studentName}</h3>
+            </div>
+
+            <p class="text-xs sm:text-sm text-zinc-300 max-w-2xl mx-auto leading-relaxed">
+              Concluiu com pleno êxito e frequência integral todos os módulos e exigências didáticas do curso <strong class="text-white">${course.title}</strong>, ministrado pela escola <strong class="text-white">${course.school}</strong>, totalizando a carga horária oficial de <strong class="text-white">40 horas</strong> de capacitação técnica.
+            </p>
+
+            <div class="pt-8 flex justify-around items-end border-t border-darkBorder">
+              <div>
+                <div class="h-8 font-serif italic text-base text-zinc-300">${course.instructor}</div>
+                <div class="border-t border-zinc-600 w-52 pt-1 text-[11px] text-zinc-400 font-semibold">${course.instructor} - Instrutor Titular</div>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-zinc-300">25 de Setembro de 2026</div>
+                <div class="border-t border-zinc-600 w-40 pt-1 text-[11px] text-zinc-400 font-semibold">Data de Emissão</div>
+              </div>
             </div>
           </div>
         </div>
@@ -722,86 +1286,113 @@
     }
 
     // =========================================================================
-    // HANDLERS
+    // HANDLERS E CONTROLE DE EVENTOS
     // =========================================================================
 
-    function setLog(e, p) {
-      document.getElementById('log-email').value = e;
-      document.getElementById('log-pass').value = p;
+    function fillLogin(email, pass) {
+      const e = document.getElementById('login-email');
+      const p = document.getElementById('login-password');
+      if (e) e.value = email;
+      if (p) p.value = pass;
     }
 
-    async function handleLoginSubmit(e) {
+    async function handleLogin(e) {
       e.preventDefault();
-      const em = document.getElementById('log-email').value.trim();
-      const pw = document.getElementById('log-pass').value.trim();
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-password').value.trim();
 
+      // Tentativa de consulta Supabase
       if (db) {
         try {
-          const { data } = await db.from('users').select('*').eq('email', em).eq('password_hash', pw).single();
-          if (data) {
-            applyLogin(data);
+          const { data, error } = await db.from('users').select('*').eq('email', email).single();
+          if (data && data.password_hash === pass) {
+            loginUserSuccess(data);
             return;
           }
-        } catch (err) { }
+        } catch(err) {
+          console.warn('[Supabase] Consulta falhou, acionando fallback.');
+        }
       }
 
-      if (em === 'admin@kognus.com' && pw === 'admin123') {
-        applyLogin({ name: 'Admin Kognus', email: em, role: 'admin' });
-      } else if (em === 'instrutor@kognus.com' && pw === '123456') {
-        applyLogin({ name: 'Prof. Renato Mestre', email: em, role: 'instrutor' });
-      } else if (em === 'aluno@kognus.com' && pw === '123456') {
-        applyLogin({ name: 'Lucas Mendes', email: em, role: 'aluno', must_change_password: false });
-      } else if (pw.startsWith('TMP-')) {
-        applyLogin({ name: 'Aluno Recente', email: em, role: 'aluno', must_change_password: true });
+      // Autenticação local de contingência
+      if (email === 'admin@kognus.com' && pass === 'admin123') {
+        loginUserSuccess({ id: 'adm_1', name: 'Administrador Kognus', email, role: 'admin' });
+      } else if (email === 'instrutor@kognus.com' && pass === '123456') {
+        loginUserSuccess({ id: 'inst_1', name: 'Prof. Renato Mestre', email, role: 'instrutor' });
+      } else if (email === 'aluno@kognus.com' && pass === '123456') {
+        loginUserSuccess({ id: 'alu_1', name: 'Lucas Mendes', email, role: 'aluno', must_change_password: false });
+      } else if (pass.startsWith('TMP-')) {
+        loginUserSuccess({ id: 'alu_tmp', name: 'Aluno Recente', email, role: 'aluno', must_change_password: true });
       } else {
-        showToast('Credenciais incorretas! Tente as contas de teste.', 'error');
+        showToast('Credenciais incorretas! Tente as contas de teste rápidas.', 'error');
       }
     }
 
-    function applyLogin(u) {
-      currentUser = u;
-      localStorage.setItem('kognus_session', JSON.stringify(u));
+    function loginUserSuccess(user) {
+      currentUser = user;
+      localStorage.setItem('kognus_session', JSON.stringify(user));
       renderHeader();
-      showToast(`Bem-vindo, ${u.name}!`, 'success');
-      if (u.must_change_password) navigateTo('first-login');
-      else if (u.role === 'admin') navigateTo('superadmin');
-      else if (u.role === 'instrutor') navigateTo('creator');
-      else navigateTo('landing');
+      showToast(`Bem-vindo, ${user.name}!`, 'success');
+
+      // REDIRECIONAMENTO OBRIGATÓRIO POR PERFIL
+      if (user.must_change_password) {
+        navigateTo('first-login');
+      } else if (user.role === 'admin') {
+        navigateTo('dashboard-admin');
+      } else if (user.role === 'instrutor') {
+        navigateTo('dashboard-instrutor');
+      } else {
+        navigateTo('dashboard-aluno');
+      }
     }
 
-    function handleCheckout(e, courseId) {
+    function handleCheckoutSimulate(e, courseId) {
       e.preventDefault();
-      const em = document.getElementById('chk-email').value;
-      const tmp = 'TMP-' + Math.floor(100000 + Math.random() * 900000);
-      state.enrollments.push({ studentEmail: em, courseId });
-      navigateTo('purchase-success', { tempPass: tmp });
+      const name = document.getElementById('chk-name').value;
+      const email = document.getElementById('chk-email').value;
+      const tempPass = 'TMP-' + Math.floor(100000 + Math.random() * 900000);
+
+      state.enrollments.push({ studentEmail: email, courseId: courseId });
+      showToast('Matrícula confirmada pelo Gateway!', 'success');
+      navigateTo('purchase-success', { tempPass: tempPass });
     }
 
-    function handlePassChange(e) {
+    function handlePasswordChange(e) {
       e.preventDefault();
-      if (document.getElementById('np-1').value !== document.getElementById('np-2').value) {
+      const n = document.getElementById('new-pass').value;
+      const c = document.getElementById('confirm-pass').value;
+      if (n !== c) {
         showToast('As senhas não coincidem!', 'error');
         return;
       }
-      if (currentUser) currentUser.must_change_password = false;
-      showToast('Senha alterada! Acesso liberado.', 'success');
-      navigateTo('player', { courseId: 1 });
+      if (n.length < 6) {
+        showToast('A senha deve ter no mínimo 6 caracteres!', 'error');
+        return;
+      }
+      if (currentUser) {
+        currentUser.must_change_password = false;
+        localStorage.setItem('kognus_session', JSON.stringify(currentUser));
+      }
+      showToast('Senha alterada com sucesso! Acesso liberado ao seu painel.', 'success');
+      navigateTo('dashboard-aluno');
     }
 
-    function handleInstructorReg(e) {
+    function handleInstructorRegister(e) {
       e.preventDefault();
-      const name = document.getElementById('ins-name').value;
-      const email = document.getElementById('ins-email').value;
-      applyLogin({ name, email, role: 'instrutor' });
+      const name = document.getElementById('inst-name').value;
+      const school = document.getElementById('inst-school').value;
+      const email = document.getElementById('inst-email').value;
+      const user = { id: 'inst_' + Date.now(), name, school, email, role: 'instrutor' };
+      loginUserSuccess(user);
     }
 
-    function handleAdminPass(e) {
+    function handleAdminPasswordRenew(e) {
       e.preventDefault();
-      showToast('Senha do SuperAdmin renovada por mais 30 dias!', 'success');
-      navigateTo('superadmin');
+      showToast('Senha de administrador renovada com sucesso!', 'success');
+      navigateTo('dashboard-admin');
     }
 
-    function pickLesson(courseId, lessonId) {
+    function selectLesson(courseId, lessonId) {
       const course = state.courses.find(c => c.id === courseId);
       if (course) {
         for (let m of course.modules) {
@@ -815,14 +1406,77 @@
       }
     }
 
-    function toggleDone(lessonId) {
-      if (!completedLessons.includes(lessonId)) completedLessons.push(lessonId);
-      showToast('Aula concluída!', 'success');
-      navigateTo('player', { courseId: 1 });
+    function toggleLessonComplete(lessonId, courseId) {
+      if (!completedLessons.includes(lessonId)) {
+        completedLessons.push(lessonId);
+        showToast('Aula concluída com sucesso!', 'success');
+      } else {
+        showToast('Esta aula já estava marcada como concluída.', 'info');
+      }
+      navigateTo('player', { courseId: courseId || 1 });
     }
 
+    function toggleAccordion(moduleId) {
+      openAccordionModules[moduleId] = !openAccordionModules[moduleId];
+      const course = state.courses[0];
+      navigateTo('player', { courseId: course.id });
+    }
+
+    function toggleAddLessonForm() {
+      showAddLessonForm = !showAddLessonForm;
+      navigateTo('dashboard-instrutor');
+    }
+
+    function handleSaveNewLesson(e) {
+      e.preventDefault();
+      const modTitle = document.getElementById('nl-module-title').value.trim();
+      const lessonTitle = document.getElementById('nl-lesson-title').value.trim();
+      const videoUrl = document.getElementById('nl-video-url').value.trim();
+      const pdfName = document.getElementById('nl-pdf-name').value.trim();
+
+      let ytId = 'dQw4w9WgXcQ';
+      if (videoUrl.includes('v=')) {
+        ytId = videoUrl.split('v=')[1].split('&')[0];
+      } else if (videoUrl.includes('youtu.be/')) {
+        ytId = videoUrl.split('youtu.be/')[1].split('?')[0];
+      }
+
+      const course = state.courses[0];
+      let targetMod = course.modules.find(m => m.title.toLowerCase() === modTitle.toLowerCase());
+      if (!targetMod) {
+        targetMod = {
+          id: Date.now(),
+          title: modTitle,
+          lessons: []
+        };
+        course.modules.push(targetMod);
+      }
+
+      const newLesson = {
+        id: Date.now() + 1,
+        title: lessonTitle,
+        duration: "15 min",
+        youtubeId: ytId,
+        pdf: pdfName || "Apostila_Complementar.pdf"
+      };
+      targetMod.lessons.push(newLesson);
+
+      showAddLessonForm = false;
+      showToast('Nova aula salva na grade com sucesso!', 'success');
+      navigateTo('dashboard-instrutor');
+    }
+
+    function toggleSchoolStatus(email) {
+      const inst = state.instructors.find(i => i.email === email);
+      if (inst) {
+        inst.status = inst.status === 'ativo' ? 'inadimplente' : 'ativo';
+        showToast(`Status da escola ${inst.school} alterado para ${inst.status.toUpperCase()}!`, 'info');
+        navigateTo('dashboard-admin');
+      }
+    }
+
+    // Inicialização ao carregar a página
     window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
-
 </html>
