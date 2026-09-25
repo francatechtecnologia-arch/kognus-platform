@@ -1,0 +1,9 @@
+﻿# Arquivos de servidor Node.js local - nao devem ser deployados na Vercel
+server.js
+test.js
+testar.bat
+iniciar.bat
+package.json
+css/
+js/
+README.md
