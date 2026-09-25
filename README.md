@@ -63,3 +63,4 @@ npm test
    - Congelamento e reativação automática de cursos por status de pagamento.
    - Gateway próprio (Kiwify, Hotmart, Eduzz) com simulador de Webhook.
    - Emissão de certificados personalizáveis com código `AUTH-KOGNUS-XXXX`.
+# kognus-platform
