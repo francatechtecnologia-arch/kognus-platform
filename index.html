@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>KOGNUS — Plataforma Educacional & Creator Studio SaaS</title>
-  <!-- KOGNUS Build: 2026-09-25T12:20:00Z - Production Release -->
   <meta name="description" content="Plataforma de cursos online e gestão de escolas digitais com 0% de comissão.">
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
@@ -211,7 +213,7 @@
           currentUser = JSON.parse(savedSession);
         } catch(e) {
           currentUser = null;
-          localStorage.removeItem('kognus_session');
+          localStorage.clear();
         }
       } else {
         currentUser = null;
@@ -371,14 +373,14 @@
 
     // 7. CICLO DE VIDA DO LOGOUT RIGOROSO
     function logout() {
-      // 1. Limpeza de storage
-      localStorage.removeItem('kognus_session');
+      // 1. Limpeza rigorosa de armazenamento local e de sessão
+      localStorage.clear();
       sessionStorage.clear();
-      // 2. Redefinição da variável global
+      // 2. Redefinição reativa do estado global
       currentUser = null;
-      // 3. Re-renderização imediata do Header
+      // 3. Re-renderização imediata do cabeçalho
       renderHeader();
-      // 4. Redirecionamento para a Landing Page
+      // 4. Redirecionamento instantâneo para a vitrine de visitante
       navigateTo('landing');
       // 5. Toast de confirmação
       showToast('Sessão encerrada com sucesso.', 'info');
