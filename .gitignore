@@ -1,4 +1,4 @@
-﻿# Servidor local Node.js (nao vai para Vercel)
+# Servidor local Node.js (nao vai para Vercel)
 package.json
 package-lock.json
 node_modules/
@@ -18,3 +18,6 @@ README.md
 
 # Vercel
 .vercelignore
+
+# Binários locais
+*.exe
