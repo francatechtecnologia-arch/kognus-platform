@@ -313,7 +313,7 @@
       }
     }
 
-    // Leitura e Hidratação Real do Supabase
+    // Leitura e Hidratação Real do Supabase (Zero Data Loss)
     async function hydrateFromSupabase() {
       if (!db) return;
       try {
@@ -323,7 +323,7 @@
           .select('*, course_modules(*, course_lessons(*))');
 
         if (!coursesError && coursesData && coursesData.length > 0) {
-          state.courses = coursesData.map(c => {
+          const remoteCourses = coursesData.map(c => {
             const certConfig = c.certificate_config || {
               enabled: c.certificate_enabled ?? true,
               template: 'classic',
@@ -344,7 +344,7 @@
               school: c.school_name || 'Escola do Renato Mestre',
               price: typeof c.price === 'number' ? c.price.toFixed(2).replace('.', ',') : (c.price || '297,00'),
               category: c.category || 'Colorimetria',
-              image: c.image_url || c.thumbnail_url || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
+              image: c.thumbnail_url || c.image_url || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
               description: c.description || 'Curso completo na plataforma KOGNUS.',
               status: (c.status === 'published' || c.status === 'publicado') ? 'Publicado' : c.status,
               studentsCount: c.students_count || 0,
@@ -367,29 +367,76 @@
             };
           });
 
+          // Preserva cursos criados localmente que ainda não foram sincronizados
+          const mergedCourses = [...remoteCourses];
+          state.courses.forEach(localC => {
+            const exists = remoteCourses.some(rc => rc.id == localC.id || String(rc.id) === String(localC.id) || (rc.rawId && rc.rawId === localC.id));
+            if (!exists) {
+              mergedCourses.push(localC);
+            }
+          });
+
+          state.courses = mergedCourses;
+
           try {
             localStorage.setItem('kognus_custom_courses', JSON.stringify(state.courses));
           } catch(e) {}
         } else if (!coursesError && (!coursesData || coursesData.length === 0)) {
-          // Se tabela vazia, insere seed inicial para não ficar vazio
           seedSupabaseDatabase();
         }
 
-        // 2. Se usuário estiver logado, recupera matrículas e aulas concluídas
+        // 2. Hidrata Instrutores e Escolas a partir da tabela users
+        try {
+          const { data: usersData, error: usersErr } = await db
+            .from('users')
+            .select('*')
+            .eq('role', 'instrutor');
+
+          if (!usersErr && usersData && usersData.length > 0) {
+            usersData.forEach(u => {
+              const cleanEmail = u.email ? u.email.toLowerCase().trim() : '';
+              if (!cleanEmail) return;
+              const existingIdx = state.instructors.findIndex(i => i.email && i.email.toLowerCase().trim() === cleanEmail);
+              const instRecord = {
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                school: u.school_name || 'Minha Escola',
+                coursesCount: state.courses.filter(c => (c.instructorEmail && c.instructorEmail.toLowerCase().trim() === cleanEmail) || (c.instructor && c.instructor.toLowerCase() === u.name.toLowerCase())).length,
+                status: u.status || 'pendente',
+                mrr: 89.90,
+                createdAt: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')
+              };
+              if (existingIdx >= 0) {
+                state.instructors[existingIdx] = { ...state.instructors[existingIdx], ...instRecord };
+              } else {
+                state.instructors.unshift(instRecord);
+              }
+            });
+            try {
+              localStorage.setItem('kognus_instructors', JSON.stringify(state.instructors));
+            } catch(e) {}
+          }
+        } catch(eInst) {
+          console.warn('[Supabase Instructors Hydration Warning]', eInst);
+        }
+
+        // 3. Se usuário estiver logado, recupera matrículas e aulas concluídas
         if (currentUser && currentUser.email) {
           const cleanEmail = currentUser.email.toLowerCase().trim();
 
           // Matrículas ativas
           try {
+            const userUuid = ensureUUID(currentUser.id);
             const { data: enrData, error: enrError } = await db
               .from('enrollments')
               .select('*')
-              .eq('student_email', cleanEmail);
+              .eq('student_id', userUuid);
 
             if (!enrError && enrData && enrData.length > 0) {
               enrData.forEach(item => {
                 const cId = fromUuidToId(item.course_id);
-                if (!state.enrollments.some(e => e.studentEmail.toLowerCase().trim() === cleanEmail && String(e.courseId) === String(cId))) {
+                if (!state.enrollments.some(e => e.studentEmail && e.studentEmail.toLowerCase().trim() === cleanEmail && (String(e.courseId) === String(cId) || (cId && String(e.courseId) === String(fromUuidToId(item.course_id)))))) {
                   state.enrollments.push({ studentEmail: cleanEmail, courseId: cId });
                 }
               });
@@ -398,7 +445,7 @@
               } catch(e) {}
             }
           } catch(eEnr) {
-            console.warn('[Supabase Enrollments Hydration]', eEnr);
+            console.warn('[Supabase Enrollments Hydration Warning]', eEnr);
           }
 
           // Aulas concluídas
@@ -411,7 +458,7 @@
             if (!progError && progData && progData.length > 0) {
               progData.forEach(p => {
                 const lId = fromUuidToId(p.lesson_id);
-                if (!completedLessons.includes(lId)) {
+                if (!completedLessons.some(id => String(id) === String(lId))) {
                   completedLessons.push(lId);
                 }
               });
@@ -420,12 +467,12 @@
               } catch(e) {}
             }
           } catch(eProg) {
-            console.warn('[Supabase Progress Hydration]', eProg);
+            console.warn('[Supabase Progress Hydration Warning]', eProg);
           }
         }
 
         // Re-renderiza a visualização caso esteja em catálogo ou painel
-        if (['landing', 'dashboard-instrutor', 'dashboard-aluno'].includes(currentView)) {
+        if (['landing', 'dashboard-instrutor', 'dashboard-aluno', 'superadmin', 'dashboard-admin'].includes(currentView)) {
           renderHeader();
           navigateTo(currentView);
         }
@@ -571,6 +618,24 @@
           const parsed = JSON.parse(savedEnrollments);
           if (Array.isArray(parsed) && parsed.length > 0) {
             state.enrollments = parsed;
+          }
+        } catch(e) {}
+      }
+
+      // Restaura instrutores customizados do storage se existirem
+      const savedInstructors = localStorage.getItem('kognus_instructors');
+      if (savedInstructors) {
+        try {
+          const parsed = JSON.parse(savedInstructors);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed.forEach(savedInst => {
+              const idx = state.instructors.findIndex(i => i.email && savedInst.email && i.email.toLowerCase().trim() === savedInst.email.toLowerCase().trim());
+              if (idx >= 0) {
+                state.instructors[idx] = { ...state.instructors[idx], ...savedInst };
+              } else {
+                state.instructors.unshift(savedInst);
+              }
+            });
           }
         } catch(e) {}
       }
@@ -942,11 +1007,11 @@
 
       // Cursos do aluno
       const enrolledCourses = state.courses.filter(c => 
-        state.enrollments.some(e => e.studentEmail === studentEmail && e.courseId === c.id)
+        state.enrollments.some(e => (e.studentEmail && e.studentEmail.toLowerCase().trim() === studentEmail.toLowerCase().trim()) && (e.courseId == c.id || String(e.courseId) === String(c.id) || (c.rawId && String(e.courseId) === String(c.rawId))))
       );
       const recommendedCourses = state.courses.filter(c => 
         (!c.status || c.status.toLowerCase() === 'published' || c.status.toLowerCase() === 'publicado') &&
-        !state.enrollments.some(e => e.studentEmail === studentEmail && e.courseId === c.id)
+        !state.enrollments.some(e => (e.studentEmail && e.studentEmail.toLowerCase().trim() === studentEmail.toLowerCase().trim()) && (e.courseId == c.id || String(e.courseId) === String(c.id) || (c.rawId && String(e.courseId) === String(c.rawId))))
       );
 
       // Total de aulas concluídas pelo aluno
@@ -1885,10 +1950,10 @@
                         </div>
                         <div>
                           ${enrolled 
-                            ? `<button onclick="navigateTo('player', { courseId: ${course.id} })" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 transition">
+                            ? `<button onclick="navigateTo('player', { courseId: '${course.id}' })" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 transition">
                                  Acessar Sala de Aula <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                                </button>`
-                            : `<button onclick="navigateTo('checkout', { courseId: ${course.id} })" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 transition shadow-lg shadow-brand-600/30">
+                            : `<button onclick="navigateTo('checkout', { courseId: '${course.id}' })" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 transition shadow-lg shadow-brand-600/30">
                                  Matricular-se <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                                </button>`
                           }
@@ -1917,7 +1982,7 @@
 
     // TELA 2: CHECKOUT SIMPLIFICADO DO ALUNO
     function renderCheckoutPage(courseId) {
-      const course = state.courses.find(c => c.id === courseId) || state.courses[0];
+      const course = state.courses.find(c => c.id == courseId || String(c.id) === String(courseId) || c.rawId === courseId) || state.courses[0];
       const isLogged = !!currentUser;
       const studentName = isLogged ? (currentUser.name || '') : '';
       const studentEmail = isLogged ? (currentUser.email || '') : '';
@@ -2150,7 +2215,7 @@
 
     // TELA 8: PLAYER LMS MODERNO (COM ACORDEÃO E YOUTUBE EMBED)
     function renderPlayerPage(courseId) {
-      const course = state.courses.find(c => c.id === courseId) || state.courses[0];
+      const course = state.courses.find(c => c.id == courseId || String(c.id) === String(courseId) || c.rawId === courseId) || state.courses[0];
       const activeLesson = selectedLesson || (course.modules[0] ? course.modules[0].lessons[0] : null);
 
       // Calcula progresso
@@ -2191,7 +2256,7 @@
 
                 if (isCertUnlocked) {
                   return `
-                    <button onclick="navigateTo('certificate', { courseId: ${course.id} })" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition shadow-lg shadow-emerald-600/30 transform hover:scale-[1.02]">
+                    <button onclick="navigateTo('certificate', { courseId: '${course.id}' })" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition shadow-lg shadow-emerald-600/30 transform hover:scale-[1.02]">
                       <i data-lucide="award" class="w-4 h-4"></i> Certificado Liberado
                     </button>
                   `;
@@ -2224,7 +2289,7 @@
                     <h3 class="text-xl font-bold text-white">${activeLesson ? activeLesson.title : 'Selecione uma aula'}</h3>
                     <p class="text-xs text-zinc-400 mt-1">Duração: ${activeLesson ? activeLesson.duration : '0 min'} • Instrutor: ${course.instructor}</p>
                   </div>
-                  <button onclick="toggleLessonComplete(${activeLesson ? activeLesson.id : 0}, ${course.id})" class="${activeLesson && completedLessons.includes(activeLesson.id) ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'} text-xs px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5 transition">
+                  <button onclick="toggleLessonComplete('${activeLesson ? activeLesson.id : 0}', '${course.id}')" class="${activeLesson && completedLessons.includes(activeLesson.id) ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'} text-xs px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5 transition">
                     <i data-lucide="${activeLesson && completedLessons.includes(activeLesson.id) ? 'check-circle' : 'circle'}" class="w-4 h-4"></i>
                     ${activeLesson && completedLessons.includes(activeLesson.id) ? 'Concluída' : 'Marcar como Concluída'}
                   </button>
@@ -2260,7 +2325,7 @@
                   const isOpen = openAccordionModules[mod.id] !== false;
                   return `
                     <div class="border border-darkBorder rounded-xl overflow-hidden">
-                      <button onclick="toggleAccordion(${mod.id})" class="w-full bg-zinc-900/90 hover:bg-zinc-850 px-4 py-3 flex justify-between items-center text-xs font-bold text-zinc-200 transition text-left">
+                      <button onclick="toggleAccordion('${mod.id}')" class="w-full bg-zinc-900/90 hover:bg-zinc-850 px-4 py-3 flex justify-between items-center text-xs font-bold text-zinc-200 transition text-left">
                         <span>${mod.title}</span>
                         <div class="flex items-center gap-2">
                           <span class="text-[10px] text-zinc-500 font-mono">${mod.lessons.length} aulas</span>
@@ -2272,7 +2337,7 @@
                           const isCurrent = activeLesson && activeLesson.id === les.id;
                           const isDone = completedLessons.includes(les.id);
                           return `
-                            <div onclick="selectLesson(${course.id}, ${les.id})" class="p-2.5 rounded-lg flex items-center justify-between text-xs cursor-pointer transition ${isCurrent ? 'bg-brand-500/20 text-brand-300 font-bold border border-brand-500/40' : 'text-zinc-300 hover:bg-zinc-900'}">
+                            <div onclick="selectLesson('${course.id}', '${les.id}')" class="p-2.5 rounded-lg flex items-center justify-between text-xs cursor-pointer transition ${isCurrent ? 'bg-brand-500/20 text-brand-300 font-bold border border-brand-500/40' : 'text-zinc-300 hover:bg-zinc-900'}">
                               <span class="flex items-center gap-2">
                                 <i data-lucide="${isDone ? 'check-circle' : 'play'}" class="w-3.5 h-3.5 ${isDone ? 'text-emerald-400' : 'text-zinc-500'}"></i>
                                 ${les.title}
@@ -2321,7 +2386,7 @@
       return `
         <div class="max-w-4xl mx-auto space-y-6">
           <div class="flex justify-between items-center">
-            <button onclick="navigateTo('player', { courseId: ${course.id} })" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1">
+            <button onclick="navigateTo('player', { courseId: '${course.id}' })" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1">
               <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar para a Sala de Aula
             </button>
             <div class="flex items-center gap-2">
@@ -2443,16 +2508,16 @@
       }
     }
 
-    function handleCheckoutSimulate(e, courseId) {
-      e.preventDefault();
+    async function handleCheckoutSimulate(e, courseId) {
+      if (e && e.preventDefault) e.preventDefault();
       const name = document.getElementById('chk-name').value;
       const email = document.getElementById('chk-email').value;
       const tempPass = 'TMP-' + Math.floor(100000 + Math.random() * 900000);
 
       const cleanEmail = email.toLowerCase().trim();
-      const cid = Number(courseId) || courseId;
+      const cid = courseId || 1;
 
-      if (!state.enrollments.some(e => e.studentEmail.toLowerCase().trim() === cleanEmail && String(e.courseId) === String(cid))) {
+      if (!state.enrollments.some(en => en.studentEmail && en.studentEmail.toLowerCase().trim() === cleanEmail && (en.courseId == cid || String(en.courseId) === String(cid)))) {
         state.enrollments.push({ studentEmail: cleanEmail, courseId: cid });
       }
 
@@ -2460,56 +2525,54 @@
         localStorage.setItem('kognus_enrollments', JSON.stringify(state.enrollments));
       } catch(err) {}
 
-      // Persistência de contingência no Supabase
+      // Persistência real e assíncrona no Supabase
       if (db) {
-        (async () => {
-          try {
-            const qUs = db.from('users');
-            if (qUs && typeof qUs.upsert === 'function') {
-              await qUs.upsert({
-                id: generateUUID(),
-                name: name,
-                email: cleanEmail,
-                role: 'aluno',
-                school_name: '',
-                status: 'ativo',
-                password_hash: 'kognus123',
-                created_at: new Date().toISOString()
-              }, { onConflict: 'email' });
-            }
-          } catch(err) {
-            try {
-              await db.from('users').upsert({
-                name: name,
-                email: cleanEmail,
-                role: 'aluno',
-                password_hash: 'kognus123',
-                must_change_password: true
-              }, { onConflict: 'email' });
-            } catch(e2) {}
+        try {
+          let studentId = generateUUID();
+          const qU = db.from('users');
+          if (qU && typeof qU.upsert === 'function') {
+            const { data: uData, error: uErr } = await qU.upsert({
+            id: studentId,
+            name: name || 'Aluno',
+            email: cleanEmail,
+            role: 'aluno',
+            school_name: '',
+            status: 'ativo',
+            password_hash: 'kognus123',
+            must_change_password: true,
+            created_at: new Date().toISOString()
+          }, { onConflict: 'email' }).select();
+
+          if (!uErr && uData && uData[0] && uData[0].id) {
+            studentId = uData[0].id;
+          } else if (uErr) {
+            console.error('[Supabase Student User Error]', uErr);
           }
 
-          try {
-            const qEn = db.from('enrollments');
-            if (qEn && typeof qEn.upsert === 'function') {
-              await qEn.upsert({
-                student_email: cleanEmail,
-                course_id: String(cid || '1'),
-                status: 'active',
-                created_at: new Date().toISOString()
-              }, { onConflict: 'student_email,course_id' });
-            }
-          } catch(err) {
-            try {
-              const cUuid = toUuid(cid, '00000000-0000-0000-0000-');
-              await db.from('enrollments').insert({
-                course_id: cUuid,
-                progress_percentage: 0,
-                enrolled_at: new Date().toISOString()
-              });
-            } catch(e2) {}
           }
-        })();
+
+          const courseUuid = ensureUUID(cid, '00000000-0000-0000-0000-');
+          const enrollUuid = generateUUID();
+          const qE = db.from('enrollments');
+          if (qE && typeof qE.upsert === 'function') {
+            const { data: enrData, error: enrErr } = await qE.upsert({
+              id: enrollUuid,
+              student_id: studentId,
+              course_id: courseUuid,
+              progress_percentage: 0,
+              completed_lessons: [],
+              enrolled_at: new Date().toISOString()
+            }).select();
+
+            if (enrErr) {
+              console.error('[Supabase Enrollment Error]', enrErr);
+            } else {
+              console.log('[Supabase Enrollment Success]', enrData);
+            }
+          }
+        } catch(err) {
+          console.error('[Supabase Checkout Simulate Exception]', err);
+        }
       }
 
       showToast('Matrícula confirmada pelo Gateway!', 'success');
@@ -2536,16 +2599,24 @@
       navigateTo('dashboard-aluno');
     }
 
-    function handleInstructorRegister(e) {
-      e.preventDefault();
-      const name = document.getElementById('inst-name').value;
-      const school = document.getElementById('inst-school').value;
-      const email = document.getElementById('inst-email').value;
+    async function handleInstructorRegister(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const nameInput = document.getElementById('inst-name');
+      const schoolInput = document.getElementById('inst-school');
+      const emailInput = document.getElementById('inst-email');
+      const passInput = document.getElementById('inst-pass');
+
+      const name = nameInput ? nameInput.value.trim() : 'Novo Instrutor';
+      const school = schoolInput ? schoolInput.value.trim() : 'Minha Escola';
+      const email = emailInput ? emailInput.value.trim().toLowerCase() : 'instrutor@kognus.com';
+      const password = passInput && passInput.value ? passInput.value : 'kognus123';
       const userId = generateUUID();
+
       const user = {
         id: userId,
         name,
         school,
+        school_name: school,
         email,
         role: 'instrutor',
         status: 'pendente'
@@ -2561,43 +2632,61 @@
         mrr: 89.90,
         createdAt: new Date().toLocaleDateString('pt-BR')
       };
-      const existingIdx = state.instructors.findIndex(i => i.email === email);
+      const existingIdx = state.instructors.findIndex(i => i.email && i.email.toLowerCase().trim() === email);
       if (existingIdx >= 0) {
         state.instructors[existingIdx] = newRecord;
       } else {
         state.instructors.unshift(newRecord);
       }
 
-      // Persistência na tabela users do Supabase
+      try {
+        localStorage.setItem('kognus_instructors', JSON.stringify(state.instructors));
+      } catch(err) {}
+
+      // Visual de loading no botão submit
+      let submitBtn = null;
+      let origBtnHtml = '';
+      if (e && e.target) {
+        submitBtn = e.target.querySelector('button[type="submit"]') || e.target;
+        if (submitBtn && submitBtn.tagName === 'BUTTON') {
+          origBtnHtml = submitBtn.innerHTML;
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Criando Escola & Salvando...</span>';
+        }
+      }
+
+      // Persistência assíncrona verificada na tabela users do Supabase
       if (db) {
-        (async () => {
-          try {
-            const qU = db.from('users');
-            if (qU && typeof qU.upsert === 'function') {
-              await qU.upsert({
-                id: userId,
-                name: name,
-                email: email.toLowerCase().trim(),
-                role: 'instrutor',
-                school_name: school || '',
-                status: 'pendente',
-                password_hash: 'kognus123',
-                created_at: new Date().toISOString()
-              }, { onConflict: 'email' });
-            }
-          } catch(err) {
-            console.warn('[Supabase Instructor Users Upsert Warning]', err);
-            try {
-              await db.from('users').upsert({
-                id: userId,
-                name: name,
-                email: email.toLowerCase().trim(),
-                role: 'instrutor',
-                password_hash: 'kognus123'
-              }, { onConflict: 'email' });
-            } catch(e2) {}
+        try {
+          const qU = db.from('users');
+          if (qU && typeof qU.upsert === 'function') {
+            const { data, error } = await qU.upsert({
+            id: userId,
+            name: name,
+            email: email,
+            role: 'instrutor',
+            school_name: school,
+            status: 'pendente',
+            password_hash: password,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'email' }).select();
+
+          if (error) {
+            console.error('[Supabase Instructor Error]', error);
+            showToast('Aviso: Falha ao salvar no banco Supabase (' + error.message + '). Gravado localmente.', 'warning');
+          } else {
+            console.log('[Supabase Instructor Success]', data);
           }
-        })();
+          }
+        } catch(err) {
+          console.error('[Supabase Instructor Exception]', err);
+        }
+      }
+
+      if (submitBtn && submitBtn.disabled) {
+        submitBtn.disabled = false;
+        if (origBtnHtml) submitBtn.innerHTML = origBtnHtml;
       }
 
       loginUserSuccess(user);
@@ -2610,10 +2699,10 @@
     }
 
     function selectLesson(courseId, lessonId) {
-      const course = state.courses.find(c => c.id === courseId);
+      const course = state.courses.find(c => c.id == courseId || String(c.id) === String(courseId) || c.rawId === courseId);
       if (course) {
         for (let m of course.modules) {
-          let l = m.lessons.find(item => item.id === lessonId);
+          let l = m.lessons.find(item => item.id == lessonId || String(item.id) === String(lessonId) || item.rawId === lessonId);
           if (l) {
             selectedLesson = l;
             navigateTo('player', { courseId });
@@ -2623,8 +2712,9 @@
       }
     }
 
-    function toggleLessonComplete(lessonId, courseId) {
-      if (!completedLessons.includes(lessonId)) {
+    async function toggleLessonComplete(lessonId, courseId) {
+      const isAlready = completedLessons.some(id => String(id) === String(lessonId));
+      if (!isAlready) {
         completedLessons.push(lessonId);
         showToast('Aula concluída com sucesso!', 'success');
       } else {
@@ -2637,27 +2727,28 @@
         } catch(e) {}
       }
 
-      // Persistência no Supabase na tabela lesson_progress
+      // Persistência assíncrona verificada no Supabase
       if (db && currentUser && currentUser.email) {
-        (async () => {
-          try {
-            const cleanEmail = currentUser.email.toLowerCase().trim();
-            const cUuid = toUuid(courseId || 1, '00000000-0000-0000-0000-');
-            const lUuid = toUuid(lessonId, '00000000-0000-0000-0002-');
+        try {
+          const cleanEmail = currentUser.email.toLowerCase().trim();
+          const cUuid = ensureUUID(courseId || 1, '00000000-0000-0000-0000-');
+          const lUuid = ensureUUID(lessonId, '00000000-0000-0000-0002-');
 
-            const qP = db.from('lesson_progress');
-            if (qP && typeof qP.upsert === 'function') {
-              await qP.upsert({
-                student_email: cleanEmail,
-                course_id: cUuid,
-                lesson_id: lUuid,
-                completed: true
-              }, { onConflict: 'student_email,lesson_id' });
-            }
-          } catch(err) {
-            console.warn('[Supabase Lesson Progress Warning]', err);
+          const qP = db.from('lesson_progress');
+          if (qP && typeof qP.upsert === 'function') {
+            const { error: pErr } = await qP.upsert({
+            student_email: cleanEmail,
+            course_id: cUuid,
+            lesson_id: lUuid,
+            completed: true,
+            completed_at: new Date().toISOString()
+          }, { onConflict: 'student_email,lesson_id' });
+
+          if (pErr) console.warn('[Supabase Lesson Progress Warning]', pErr);
           }
-        })();
+        } catch(err) {
+          console.warn('[Supabase Lesson Progress Exception]', err);
+        }
       }
 
       navigateTo('player', { courseId: courseId || 1 });
@@ -2674,8 +2765,8 @@
       navigateTo('dashboard-instrutor');
     }
 
-    function handleSaveNewLesson(e) {
-      e.preventDefault();
+    async function handleSaveNewLesson(e) {
+      if (e && e.preventDefault) e.preventDefault();
       const modTitle = document.getElementById('nl-module-title').value.trim();
       const lessonTitle = document.getElementById('nl-lesson-title').value.trim();
       const videoUrl = document.getElementById('nl-video-url').value.trim();
@@ -2693,6 +2784,7 @@
       if (!targetMod) {
         targetMod = {
           id: generateUUID(),
+          rawId: generateUUID(),
           title: modTitle,
           lessons: []
         };
@@ -2701,6 +2793,7 @@
 
       const newLesson = {
         id: generateUUID(),
+        rawId: generateUUID(),
         title: lessonTitle,
         duration: "15 min",
         youtubeId: ytId,
@@ -2712,37 +2805,41 @@
         localStorage.setItem('kognus_custom_courses', JSON.stringify(state.courses));
       } catch(err) {}
 
-      // Persistência nas tabelas course_modules e course_lessons do Supabase
+      // Persistência assíncrona verificada no Supabase
       if (db) {
-        (async () => {
-          try {
-            const courseUuid = ensureUUID(course.id, '00000000-0000-0000-0000-');
-            const modUuid = ensureUUID(targetMod.id, '00000000-0000-0000-0001-');
-            const lessonUuid = ensureUUID(newLesson.id, '00000000-0000-0000-0002-');
+        try {
+          const courseUuid = ensureUUID(course.rawId || course.id, '00000000-0000-0000-0000-');
+          const modUuid = ensureUUID(targetMod.rawId || targetMod.id, '00000000-0000-0001-');
+          const lessonUuid = ensureUUID(newLesson.rawId || newLesson.id, '00000000-0002-');
 
-            const qMod = db.from('course_modules');
-            if (qMod && typeof qMod.upsert === 'function') await qMod.upsert({
-              id: modUuid,
-              course_id: courseUuid,
-              title: targetMod.title,
-              order_index: course.modules.indexOf(targetMod)
-            });
-
-            const qLes = db.from('course_lessons');
-            if (qLes && typeof qLes.upsert === 'function') await qLes.upsert({
-              id: lessonUuid,
-              module_id: modUuid,
-              course_id: courseUuid,
-              title: newLesson.title,
-              duration: newLesson.duration,
-              video_url: videoUrl || `https://www.youtube-nocookie.com/embed/${ytId}`,
-              pdf_url: newLesson.pdf,
-              order_index: targetMod.lessons.length - 1
-            });
-          } catch(err) {
-            console.warn('[Supabase Module/Lesson Upsert Warning]', err);
+          const qM = db.from('course_modules');
+          if (qM && typeof qM.upsert === 'function') {
+            const { error: mErr } = await qM.upsert({
+            id: modUuid,
+            course_id: courseUuid,
+            title: targetMod.title,
+            order_index: course.modules.indexOf(targetMod)
+          });
+          if (mErr) console.error('[Supabase Module Upsert Error]', mErr);
           }
-        })();
+
+          const qL = db.from('course_lessons');
+          if (qL && typeof qL.upsert === 'function') {
+            const { error: lErr } = await qL.upsert({
+            id: lessonUuid,
+            module_id: modUuid,
+            course_id: courseUuid,
+            title: newLesson.title,
+            duration: newLesson.duration,
+            video_url: videoUrl || `https://www.youtube-nocookie.com/embed/${ytId}`,
+            pdf_url: newLesson.pdf,
+            order_index: targetMod.lessons.length - 1
+          });
+          if (lErr) console.error('[Supabase Lesson Upsert Error]', lErr);
+          }
+        } catch(err) {
+          console.error('[Supabase Module/Lesson Upsert Exception]', err);
+        }
       }
 
       showAddLessonForm = false;
@@ -3114,7 +3211,7 @@
             </div>
             <div id="radar-success-action-container">
               ${isStudent ? `
-                <button onclick="closeRadarAndAccessLMS(${currentRadarCourseId || 1})" class="w-full min-h-[44px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+                <button onclick="closeRadarAndAccessLMS('${currentRadarCourseId || 1}')" class="w-full min-h-[44px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
                   <i data-lucide="play-circle" class="w-4 h-4"></i> Entrar na Sala de Aula
                 </button>
               ` : `
@@ -3959,9 +4056,9 @@
       reader.readAsDataURL(file);
     }
 
-    function handleSaveCertificateStudio(e, courseId) {
+    async function handleSaveCertificateStudio(e, courseId) {
       if (e && e.preventDefault) e.preventDefault();
-      const course = state.courses.find(c => c.id === courseId);
+      const course = state.courses.find(c => c.id == courseId || String(c.id) === String(courseId) || c.rawId === courseId);
       if (!course) return;
 
       const enabled = document.getElementById('cert-enabled')?.checked ?? true;
@@ -3990,18 +4087,17 @@
 
       // Atualização persistente de certificado no Supabase
       if (db && course) {
-        (async () => {
-          try {
-            const courseUuid = toUuid(course.id, '00000000-0000-0000-0000-');
-            await db.from('courses').update({
-              certificate_config: course.certificateConfig,
-              certificate_enabled: course.certificateConfig.enabled,
-              certificate_hours: course.certificateConfig.workloadHours || 40
-            }).eq('id', courseUuid);
-          } catch(err) {
-            console.warn('[Supabase Certificate Save Warning]', err);
-          }
-        })();
+        try {
+          const courseUuid = ensureUUID(course.rawId || course.id, '00000000-0000-0000-0000-');
+          const { error: certErr } = await db.from('courses').update({
+            certificate_config: course.certificateConfig,
+            certificate_enabled: course.certificateConfig.enabled,
+            certificate_hours: course.certificateConfig.workloadHours || 40
+          }).eq('id', courseUuid);
+          if (certErr) console.warn('[Supabase Certificate Save Error]', certErr);
+        } catch(err) {
+          console.warn('[Supabase Certificate Save Exception]', err);
+        }
       }
 
       closeCertificateStudioModal();
@@ -4116,7 +4212,7 @@
             <p class="text-xs text-zinc-400 mt-1">Defina preço individual, link de checkout direto (Kiwify/Hotmart/Stripe) e capa.</p>
           </div>
 
-          <form onsubmit="handleSaveCourse(event, ${isEdit ? course.id : 'null'})" class="space-y-4 text-left">
+          <form onsubmit="handleSaveCourse(event, ${isEdit ? `'${course.id}'` : 'null'})" class="space-y-4 text-left">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="sm:col-span-2">
                 <label class="block text-xs font-semibold text-zinc-300 mb-1">Título do Curso</label>
@@ -4520,9 +4616,15 @@
       navigateTo('dashboard-instrutor');
     }
 
-    function handleSaveCourse(e, courseId) {
+    async function handleSaveCourse(e, courseId) {
       if (e && e.preventDefault) e.preventDefault();
-      const title = document.getElementById('course-modal-title')?.value || 'Novo Curso';
+      const titleInput = document.getElementById('course-modal-title');
+      const title = titleInput ? titleInput.value.trim() : '';
+      if (!title) {
+        showToast('O título do curso é obrigatório!', 'error');
+        return;
+      }
+
       const price = document.getElementById('course-modal-price')?.value || '297,00';
       const category = document.getElementById('course-modal-category')?.value || 'Beleza & Estética';
       const checkoutUrl = document.getElementById('course-modal-checkout-url')?.value || '';
@@ -4530,9 +4632,10 @@
       const image = preview ? preview.src : 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80';
 
       let targetCourseRef = null;
+      const isEdit = !!courseId && courseId !== 'null' && courseId !== null;
 
-      if (courseId) {
-        const c = state.courses.find(item => item.id == courseId || String(item.id) === String(courseId));
+      if (isEdit) {
+        const c = state.courses.find(item => item.id == courseId || String(item.id) === String(courseId) || item.rawId === courseId);
         if (c) {
           c.title = title;
           c.price = price;
@@ -4549,6 +4652,7 @@
 
         const newCourse = {
           id: newCourseId,
+          rawId: newCourseId,
           title,
           price,
           category,
@@ -4573,10 +4677,12 @@
           modules: [
             {
               id: newModId,
+              rawId: newModId,
               title: 'Módulo 1: Introdução & Boas-vindas',
               lessons: [
                 {
                   id: newLessonId,
+                  rawId: newLessonId,
                   title: '01. Aula Inaugural',
                   duration: '10 min',
                   youtubeId: 'dQw4w9WgXcQ',
@@ -4596,74 +4702,95 @@
         localStorage.setItem('kognus_custom_courses', JSON.stringify(state.courses));
       } catch(err) {}
 
+      // Loading state on submit button
+      let submitBtn = null;
+      let origBtnHtml = '';
+      if (e && e.target) {
+        submitBtn = e.target.querySelector('button[type="submit"]') || e.target;
+        if (submitBtn && submitBtn.tagName === 'BUTTON') {
+          origBtnHtml = submitBtn.innerHTML;
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Gravando Curso no Supabase...</span>';
+        }
+      }
+
       // Persistência completa do curso e módulos/aulas no Supabase
       if (db && targetCourseRef) {
-        (async () => {
-          try {
-            const courseUuid = ensureUUID(targetCourseRef.id, '00000000-0000-0000-0000-');
-            const instructorUuid = (currentUser && currentUser.id) ? ensureUUID(currentUser.id) : null;
-            const numericPrice = parseFloat(String(targetCourseRef.price).replace(/\./g, '').replace(',', '.')) || 0;
+        try {
+          const courseUuid = ensureUUID(targetCourseRef.rawId || targetCourseRef.id, '00000000-0000-0000-0000-');
+          const numericPrice = parseFloat(String(targetCourseRef.price).replace(/[R$\s.]/g, '').replace(',', '.')) || 0;
 
-            const coursePayload = {
-              id: courseUuid,
-              instructor_id: instructorUuid,
-              title: targetCourseRef.title,
-              category: targetCourseRef.category || 'Beleza & Estética',
-              description: targetCourseRef.description || 'Curso completo na plataforma KOGNUS.',
-              price: numericPrice,
-              thumbnail_url: targetCourseRef.image,
-              external_checkout_url: targetCourseRef.checkoutUrl || '',
-              status: (targetCourseRef.status === 'draft' || targetCourseRef.status === 'rascunho') ? 'draft' : 'publicado',
-              certificate_enabled: targetCourseRef.certificateConfig?.enabled ?? true,
-              certificate_hours: targetCourseRef.certificateConfig?.workloadHours || 40
-            };
+          const coursePayload = {
+            id: courseUuid,
+            instructor_id: null, // Mantém null para respeitar a constraint FK com instructors_profile
+            title: targetCourseRef.title,
+            category: targetCourseRef.category || 'Beleza & Estética',
+            description: targetCourseRef.description || 'Curso completo na plataforma KOGNUS.',
+            price: numericPrice,
+            thumbnail_url: targetCourseRef.image,
+            external_checkout_url: targetCourseRef.checkoutUrl || '',
+            status: (targetCourseRef.status === 'draft' || targetCourseRef.status === 'rascunho') ? 'draft' : 'publicado',
+            certificate_enabled: targetCourseRef.certificateConfig?.enabled ?? true,
+            certificate_hours: targetCourseRef.certificateConfig?.workloadHours || 40
+          };
 
-            const qCr = db.from('courses');
-            if (qCr && typeof qCr.upsert === 'function') {
-              const { error: cErr } = await qCr.upsert(coursePayload);
-              if (cErr) console.warn('[Supabase Course Upsert Error]', cErr);
+          const qC = db.from('courses');
+          if (qC && typeof qC.upsert === 'function') {
+            const { data: cData, error: cErr } = await qC.upsert(coursePayload).select();
+            if (cErr) {
+              console.error('[Supabase Course Upsert Error]', cErr);
+              showToast('Aviso: Erro ao persistir curso no Supabase: ' + cErr.message, 'warning');
+            } else {
+              console.log('[Supabase Course Upsert Success]', cData);
             }
+          }
 
-            // Persiste módulos e aulas do curso
-            if (targetCourseRef.modules && Array.isArray(targetCourseRef.modules)) {
-              for (let mi = 0; mi < targetCourseRef.modules.length; mi++) {
-                const mod = targetCourseRef.modules[mi];
-                const modUuid = ensureUUID(mod.id, '00000000-0000-0000-0001-');
-                const qM = db.from('course_modules');
-                if (qM && typeof qM.upsert === 'function') {
-                  await qM.upsert({
-                    id: modUuid,
-                    course_id: courseUuid,
-                    title: mod.title,
-                    order_index: mi
-                  });
-                }
+          // Persiste módulos e aulas do curso
+          if (targetCourseRef.modules && Array.isArray(targetCourseRef.modules)) {
+            for (let mi = 0; mi < targetCourseRef.modules.length; mi++) {
+              const mod = targetCourseRef.modules[mi];
+              const modUuid = ensureUUID(mod.rawId || mod.id, '00000000-0000-0001-');
+              const qMod = db.from('course_modules');
+              if (qMod && typeof qMod.upsert === 'function') {
+                const { error: mErr } = await qMod.upsert({
+                  id: modUuid,
+                  course_id: courseUuid,
+                  title: mod.title,
+                  order_index: mi
+                });
+                if (mErr) console.error('[Supabase Module Upsert Error]', mErr);
+              }
 
-                if (mod.lessons && Array.isArray(mod.lessons)) {
-                  for (let li = 0; li < mod.lessons.length; li++) {
-                    const les = mod.lessons[li];
-                    const lesUuid = ensureUUID(les.id, '00000000-0000-0000-0002-');
-                    const qL = db.from('course_lessons');
-                    if (qL && typeof qL.upsert === 'function') {
-                      await qL.upsert({
-                        id: lesUuid,
-                        module_id: modUuid,
-                        course_id: courseUuid,
-                        title: les.title,
-                        duration: les.duration || '15 min',
-                        video_url: les.videoUrl || `https://www.youtube-nocookie.com/embed/${les.youtubeId || 'dQw4w9WgXcQ'}`,
-                        pdf_url: les.pdf || 'Apostila.pdf',
-                        order_index: li
-                      });
-                    }
+              if (mod.lessons && Array.isArray(mod.lessons)) {
+                for (let li = 0; li < mod.lessons.length; li++) {
+                  const les = mod.lessons[li];
+                  const lesUuid = ensureUUID(les.rawId || les.id, '00000000-0002-');
+                  const qLes = db.from('course_lessons');
+                  if (qLes && typeof qLes.upsert === 'function') {
+                    const { error: lErr } = await qLes.upsert({
+                      id: lesUuid,
+                      module_id: modUuid,
+                      course_id: courseUuid,
+                      title: les.title,
+                      duration: les.duration || '15 min',
+                      video_url: les.videoUrl || `https://www.youtube-nocookie.com/embed/${les.youtubeId || 'dQw4w9WgXcQ'}`,
+                      pdf_url: les.pdf || 'Apostila.pdf',
+                      order_index: li
+                    });
+                    if (lErr) console.error('[Supabase Lesson Upsert Error]', lErr);
                   }
                 }
               }
             }
-          } catch(err) {
-            console.warn('[Supabase Course Persist Error]', err);
           }
-        })();
+        } catch(err) {
+          console.error('[Supabase Course Persist Exception]', err);
+        }
+      }
+
+      if (submitBtn && submitBtn.disabled) {
+        submitBtn.disabled = false;
+        if (origBtnHtml) submitBtn.innerHTML = origBtnHtml;
       }
 
       closeCourseModal();
@@ -4712,9 +4839,9 @@
     }
 
     // 5. Radar de Espera em Tempo Real do Aluno (Checkout BYOG & Stripe Unificado)
-    function handleStudentCheckoutSubmit(e, courseId) {
+    async function handleStudentCheckoutSubmit(e, courseId) {
       if (e && e.preventDefault) e.preventDefault();
-      const course = state.courses.find(c => c.id === courseId) || state.courses[0];
+      const course = state.courses.find(c => c.id == courseId || String(c.id) === String(courseId) || c.rawId === courseId) || state.courses[0];
       const nameInput = document.getElementById('chk-name');
       const emailInput = document.getElementById('chk-email');
       const studentName = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : (currentUser ? currentUser.name : 'Aluno');
@@ -4722,33 +4849,25 @@
 
       // Persistência cadastral do aluno no Supabase
       if (db && studentEmail) {
-        (async () => {
-          try {
-            const qUs = db.from('users');
-            if (qUs && typeof qUs.upsert === 'function') {
-              await qUs.upsert({
-                id: generateUUID(),
-                name: studentName,
-                email: studentEmail.toLowerCase().trim(),
-                role: 'aluno',
-                school_name: '',
-                status: 'ativo',
-                password_hash: 'kognus123',
-                created_at: new Date().toISOString()
-              }, { onConflict: 'email' });
-            }
-          } catch(err) {
-            try {
-              await db.from('users').upsert({
-                name: studentName,
-                email: studentEmail.toLowerCase().trim(),
-                role: 'aluno',
-                password_hash: 'kognus123',
-                must_change_password: true
-              }, { onConflict: 'email' });
-            } catch(e2) {}
+        try {
+          const qUs = db.from('users');
+          if (qUs && typeof qUs.upsert === 'function') {
+            const { error: uErr } = await qUs.upsert({
+            id: generateUUID(),
+            name: studentName,
+            email: studentEmail.toLowerCase().trim(),
+            role: 'aluno',
+            school_name: '',
+            status: 'ativo',
+            password_hash: 'kognus123',
+            must_change_password: true,
+            created_at: new Date().toISOString()
+          }, { onConflict: 'email' });
+            if (uErr) console.error('[Supabase Student Checkout User Error]', uErr);
           }
-        })();
+        } catch(err) {
+          console.error('[Supabase Student Checkout Exception]', err);
+        }
       }
 
       // 1. Identificador composto do aluno e do curso
