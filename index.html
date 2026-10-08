@@ -1151,6 +1151,7 @@
           }
         } catch(eInst) {
           console.warn('[Supabase Instructors Hydration Warning]', eInst);
+        }
 
         // 3. Hidrata Configurações da API de WhatsApp do Admin a partir do Supabase
         try {
@@ -1163,9 +1164,10 @@
           if (!waErr && waData) {
             whatsappApiConfig = {
               provider: waData.provider || 'evolution',
-              baseUrl: waData.base_url || waData.baseUrl || 'https://api.meuservidor.com',
-              instanceName: waData.instance_name || waData.instanceName || 'kognus_admin',
+              baseUrl: waData.base_url || waData.baseUrl || '',
+              instanceName: waData.instance_name || waData.instanceName || 'kognus-admin',
               apiToken: waData.api_token || waData.apiToken || '',
+              openaiApiKey: waData.openai_api_key || waData.openaiApiKey || '',
               adminTestPhone: waData.admin_test_phone || waData.adminTestPhone || '5511999999999'
             };
             try {
@@ -1198,7 +1200,6 @@
             } catch(e) {}
           }
         } catch(eLogs) {}
-        }
 
         // 3. Se usuário estiver logado, recupera matrículas e aulas concluídas
         if (currentUser && currentUser.email) {
@@ -1309,9 +1310,10 @@
     let broadcastProgress = { current: 0, total: 0, percent: 0, activeName: '' };
     let whatsappApiConfig = {
       provider: 'evolution',
-      baseUrl: 'https://api.meuservidor.com',
-      instanceName: 'kognus_admin',
+      baseUrl: '',
+      instanceName: 'kognus-admin',
       apiToken: '',
+      openaiApiKey: '',
       adminTestPhone: '5511999999999'
     };
     let broadcastLogs = [];
@@ -2037,8 +2039,10 @@
         case 'superadmin':
         case 'admin-dash':
           v.innerHTML = renderAdminDashboard();
+          setupAdminRealtimeUsersChannel();
           if (typeof setTimeout !== 'undefined') {
             setTimeout(renderSuperAdminCharts, 50);
+            setTimeout(setupAdminRealtimeUsersChannel, 100);
           }
           break;
         case 'login':
@@ -2816,8 +2820,8 @@
                     </div>
 
                     <div>
-                      <label class="block text-xs font-semibold text-zinc-300 mb-1">WhatsApp / Suporte aos Alunos</label>
-                      <input type="text" id="school-whatsapp" placeholder="(00) 00000-0000" oninput="maskWhatsapp(this)" value="${currentUser?.school_whatsapp || ''}" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+                      <label class="block text-xs font-semibold text-zinc-300 mb-1">WhatsApp / Celular do Instrutor (Suporte)</label>
+                      <input type="text" id="school-whatsapp" placeholder="(11) 99999-9999" oninput="maskWhatsapp(this)" value="${currentUser?.school_whatsapp || currentUser?.phone || ''}" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
                     </div>
 
                     <div>
@@ -3130,7 +3134,10 @@
                           badgeText = 'Inadimplentes (Congelados)';
                         }
 
-                        const cleanPhone = (inst.phone || '+5511999999999').replace(/\D/g, '');
+                        const rawPhone = inst.phone || inst.school_whatsapp || '';
+                        const cleanDigits = rawPhone.replace(/\D/g, '');
+                        const sanitizedPhone = cleanDigits.startsWith('55') ? cleanDigits : ('55' + cleanDigits);
+                        const hasPhone = Boolean(rawPhone.trim() && cleanDigits.length >= 8);
 
                         return `
                           <tr class="hover:bg-zinc-900/40 transition">
@@ -3152,9 +3159,15 @@
                                 <div class="text-zinc-400 font-mono text-[11px] flex items-center gap-1.5">
                                   <i data-lucide="mail" class="w-3 h-3 text-zinc-500"></i> ${inst.email}
                                 </div>
-                                <a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 hover:underline">
-                                  <i data-lucide="phone" class="w-3 h-3 text-emerald-400"></i> ${inst.phone || '+55 (11) 99999-9999'}
-                                </a>
+                                ${hasPhone ? `
+                                  <a href="https://wa.me/${sanitizedPhone}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 hover:underline bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                                    <i data-lucide="phone" class="w-3 h-3 text-emerald-400"></i> ${rawPhone}
+                                  </a>
+                                ` : `
+                                  <span class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500">
+                                    <i data-lucide="phone-off" class="w-3 h-3 text-zinc-600"></i> Não informado
+                                  </span>
+                                `}
                               </div>
                             </td>
                             <td class="px-5 py-4 text-center">
@@ -3258,13 +3271,18 @@
                       </span>
                     </div>
 
-                    <!-- Tags Dinâmicas Rápidas -->
-                    <div class="flex flex-wrap items-center gap-1.5 bg-zinc-950/60 p-2.5 rounded-xl border border-darkBorder">
-                      <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mr-1">Tags Dinâmicas:</span>
-                      <button type="button" onclick="insertBroadcastTag('{{nome}}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-brand-300 font-mono text-[11px] border border-zinc-700 transition" title="Nome do Instrutor">+ {{nome}}</button>
-                      <button type="button" onclick="insertBroadcastTag('{{escola}}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-brand-300 font-mono text-[11px] border border-zinc-700 transition" title="Nome da Escola">+ {{escola}}</button>
-                      <button type="button" onclick="insertBroadcastTag('{{cursos_publicados}}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-brand-300 font-mono text-[11px] border border-zinc-700 transition" title="Quantidade de Cursos Publicados">+ {{cursos_publicados}}</button>
-                      <button type="button" onclick="insertBroadcastTag('{{link_pagamento}}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-brand-300 font-mono text-[11px] border border-zinc-700 transition" title="Link de Pagamento da Mensalidade">+ {{link_pagamento}}</button>
+                    <!-- Tags Dinâmicas Rápidas & Aprimoramento com IA -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 bg-zinc-950/60 p-2.5 rounded-xl border border-darkBorder">
+                      <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mr-1">Tags:</span>
+                        <button type="button" onclick="insertBroadcastTag('{{nome}}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-brand-300 font-mono text-[11px] border border-zinc-700 transition" title="Nome do Instrutor">+ {{nome}}</button>
+                        <button type="button" onclick="insertBroadcastTag('{{escola}}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-brand-300 font-mono text-[11px] border border-zinc-700 transition" title="Nome da Escola">+ {{escola}}</button>
+                        <button type="button" onclick="insertBroadcastTag('{{cursos_publicados}}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-brand-300 font-mono text-[11px] border border-zinc-700 transition" title="Quantidade de Cursos Publicados">+ {{cursos_publicados}}</button>
+                        <button type="button" onclick="insertBroadcastTag('{{link_pagamento}}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-brand-300 font-mono text-[11px] border border-zinc-700 transition" title="Link de Pagamento da Mensalidade">+ {{link_pagamento}}</button>
+                      </div>
+                      <button type="button" id="btn-improve-openai" onclick="improveBroadcastMessageWithOpenAI()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-md shadow-purple-600/20" title="Refinar tom da mensagem com IA antes do envio">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-300"></i> ✨ Melhorar Mensagem com IA (OpenAI)
+                      </button>
                     </div>
 
                     <textarea id="broadcast-message-text" rows="6" oninput="handleBroadcastMessageInput(this.value)" class="w-full bg-zinc-950 border border-darkBorder rounded-xl p-3.5 text-xs text-white leading-relaxed focus:outline-none focus:border-emerald-500 font-sans" placeholder="Digite sua mensagem de disparo...">${broadcastCurrentMessage}</textarea>
@@ -3404,9 +3422,15 @@
                           <td class="px-4 py-3 text-zinc-300 text-xs whitespace-nowrap">${log.recipientSchool}</td>
                           <td class="px-4 py-3 text-zinc-400 text-xs max-w-xs truncate" title="${log.message}">${log.message}</td>
                           <td class="px-4 py-3 text-right whitespace-nowrap">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                              Enviado ✓✓
-                            </span>
+                            ${log.status === 'falhou' ? `
+                              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                                Falhou ✕
+                              </span>
+                            ` : `
+                              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                Enviado ✓✓
+                              </span>
+                            `}
                           </td>
                         </tr>
                       `).join('')}
@@ -3420,15 +3444,32 @@
           <!-- ABA 3: CONFIGURAÇÕES DE API WHATSAPP -->
           ${currentAdminTab === 'api-config' ? `
             <div class="space-y-6">
+              <!-- BANNER DE DIFERENCIAÇÃO CLARA: IA vs GATEWAY WHATSAPP -->
+              <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-500/10 to-purple-500/10 border border-amber-500/30 flex items-start gap-3.5 shadow-lg">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+                <div class="space-y-1 text-xs">
+                  <h4 class="font-bold text-amber-300 text-sm flex items-center gap-2">
+                    Atenção à Arquitetura: IA (OpenAI) vs Gateway de WhatsApp (Evolution / Z-API)
+                  </h4>
+                  <p class="text-zinc-300 leading-relaxed">
+                    A <strong class="text-white">API da OpenAI (ChatGPT)</strong> é um modelo de linguagem para <em>geração e refinamento de texto</em>, e <strong>NÃO realiza envio físico de WhatsApp</strong>.
+                    Para disparar mensagens reais para celulares, você deve conectar um <strong>Gateway de WhatsApp</strong> (como a <strong>Evolution API</strong> ou <strong>Z-API</strong>), que gerencia o chip e a sessão do WhatsApp Web.
+                  </p>
+                </div>
+              </div>
+
+              <!-- FORMULÁRIO PRINCIPAL DE CONFIGURAÇÃO DO GATEWAY -->
               <div class="bg-darkCard border border-darkBorder rounded-2xl p-6 sm:p-7 shadow-xl space-y-6">
                 <div class="border-b border-darkBorder pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <div>
                     <h3 class="text-base font-bold text-white flex items-center gap-2">
-                      <i data-lucide="key" class="w-4 h-4 text-brand-400"></i> Conexão com Gateway de WhatsApp
+                      <i data-lucide="key" class="w-4 h-4 text-emerald-400"></i> Conexão com Gateway de WhatsApp
                     </h3>
-                    <p class="text-xs text-zinc-400">Configure as credenciais de envio para Evolution API, Z-API ou Webhook REST personalizado.</p>
+                    <p class="text-xs text-zinc-400">Configure o servidor Evolution API, Z-API ou Webhook REST para entrega real das mensagens.</p>
                   </div>
-                  <span class="px-3 py-1 rounded-full text-xs font-bold ${whatsappApiConfig.apiToken ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'} flex items-center gap-1.5">
+                  <span class="px-3 py-1 rounded-full text-xs font-bold ${whatsappApiConfig.apiToken ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'} flex items-center gap-1.5 font-mono">
                     <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> ${whatsappApiConfig.apiToken ? 'Credenciais Salvas' : 'Chave Pendente'}
                   </span>
                 </div>
@@ -3437,65 +3478,153 @@
                   <!-- Provedor -->
                   <div class="space-y-1.5">
                     <label class="block text-xs font-bold text-zinc-300">Provedor do Gateway WhatsApp</label>
-                    <select id="wa-provider" class="w-full bg-zinc-950 border border-darkBorder rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500">
-                      <option value="evolution" ${whatsappApiConfig.provider === 'evolution' ? 'selected' : ''}>Evolution API (Open-Source / Baileys)</option>
-                      <option value="z-api" ${whatsappApiConfig.provider === 'z-api' ? 'selected' : ''}>Z-API (Gateway Comercial)</option>
-                      <option value="custom" ${whatsappApiConfig.provider === 'custom' ? 'selected' : ''}>Custom REST Endpoint (Webhook / Gateway Próprio)</option>
+                    <select id="wa-provider" class="w-full bg-zinc-950 border border-darkBorder rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-medium">
+                      <option value="evolution" ${whatsappApiConfig.provider === 'evolution' ? 'selected' : ''}>Evolution API (Recomendado - Gratuito/Open Source)</option>
+                      <option value="z-api" ${whatsappApiConfig.provider === 'z-api' ? 'selected' : ''}>Z-API</option>
+                      <option value="custom" ${whatsappApiConfig.provider === 'custom' ? 'selected' : ''}>Custom REST Webhook</option>
                     </select>
                   </div>
 
                   <!-- Nome da Instância -->
                   <div class="space-y-1.5">
                     <label class="block text-xs font-bold text-zinc-300">Nome da Instância</label>
-                    <input type="text" id="wa-instance-name" value="${whatsappApiConfig.instanceName || 'kognus_admin'}" placeholder="ex: kognus_admin" class="w-full bg-zinc-950 border border-darkBorder rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                    <input type="text" id="wa-instance-name" value="${whatsappApiConfig.instanceName || 'kognus-admin'}" placeholder="ex: kognus-admin" class="w-full bg-zinc-950 border border-darkBorder rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
                   </div>
 
-                  <!-- URL Base / Endpoint -->
-                  <div class="space-y-1.5 md:col-span-2">
-                    <label class="block text-xs font-bold text-zinc-300">URL Base / Endpoint da API</label>
-                    <input type="url" id="wa-base-url" value="${whatsappApiConfig.baseUrl || 'https://api.meuservidor.com'}" placeholder="https://api.meuservidor.com" class="w-full bg-zinc-950 border border-darkBorder rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
-                  </div>
-
-                  <!-- API Token com Toggle Mostrar/Ocultar -->
+                  <!-- URL Base / Endpoint da Instância -->
                   <div class="space-y-1.5 md:col-span-2">
                     <label class="block text-xs font-bold text-zinc-300 flex items-center justify-between">
-                      <span>API Token / Secret Key</span>
-                      <span class="text-[11px] text-zinc-500">Chave Bearer ou apikey do cabeçalho</span>
+                      <span>URL Base / Endpoint da Instância</span>
+                      <span class="text-[11px] text-zinc-500 font-mono">ex: https://sua-api.up.railway.app ou http://localhost:8080</span>
+                    </label>
+                    <input type="url" id="wa-base-url" value="${whatsappApiConfig.baseUrl || ''}" placeholder="https://sua-api.up.railway.app ou http://localhost:8080" class="w-full bg-zinc-950 border border-darkBorder rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
+                  </div>
+
+                  <!-- API Key / Secret Token da Instância -->
+                  <div class="space-y-1.5 md:col-span-2">
+                    <label class="block text-xs font-bold text-zinc-300 flex items-center justify-between">
+                      <span>API Key / Secret Token da Instância</span>
+                      <span class="text-[11px] text-zinc-500">Chave de autenticação apikey do seu servidor WhatsApp</span>
                     </label>
                     <div class="relative">
-                      <input type="password" id="wa-api-token" value="${whatsappApiConfig.apiToken || ''}" placeholder="Cole sua chave de autenticação..." class="w-full bg-zinc-950 border border-darkBorder rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                      <input type="password" id="wa-api-token" value="${whatsappApiConfig.apiToken || ''}" placeholder="Cole sua API Key do servidor WhatsApp..." class="w-full bg-zinc-950 border border-darkBorder rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
                       <button type="button" onclick="toggleWaTokenVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition">
                         <i data-lucide="eye" id="wa-token-eye" class="w-4 h-4"></i>
                       </button>
                     </div>
                   </div>
 
+                  <!-- Chave OpenAI Opcional (Gerador de Copy com IA) -->
+                  <div class="space-y-1.5 md:col-span-2 p-4 rounded-xl bg-purple-950/20 border border-purple-500/30">
+                    <label class="block text-xs font-bold text-purple-300 flex items-center justify-between">
+                      <span class="flex items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-300"></i> Chave da OpenAI (Opcional - Gerador de Copy com IA)
+                      </span>
+                      <span class="text-[11px] text-purple-400/80 font-mono">sk-proj-...</span>
+                    </label>
+                    <p class="text-[11px] text-zinc-400 leading-relaxed">
+                      Utilizada exclusivamente no editor de broadcast para o botão <strong>"✨ Melhorar Mensagem com IA (OpenAI)"</strong>. Permite refinar persuasão, tom comercial e engajamento. Ela <em>NÃO</em> envia WhatsApp.
+                    </p>
+                    <div class="relative mt-2">
+                      <input type="password" id="openai-api-key" value="${whatsappApiConfig.openaiApiKey || ''}" placeholder="sk-..." class="w-full bg-zinc-950 border border-darkBorder rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-purple-500">
+                      <button type="button" onclick="toggleOpenAiKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition">
+                        <i data-lucide="eye" id="openai-token-eye" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+
                   <!-- Telefone de Teste do Administrador -->
                   <div class="space-y-1.5 md:col-span-2">
-                    <label class="block text-xs font-bold text-zinc-300">Número de Teste do Administrador (com DDI e DDD)</label>
-                    <input type="text" id="wa-admin-phone" value="${whatsappApiConfig.adminTestPhone || '5511999999999'}" placeholder="5511999999999" class="w-full bg-zinc-950 border border-darkBorder rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                    <label class="block text-xs font-bold text-zinc-300 flex items-center justify-between">
+                      <span>Número de Teste do Administrador</span>
+                      <span class="text-[11px] text-zinc-500 font-mono">Padrão internacional com DDI 55 (ex: 5511999999999)</span>
+                    </label>
+                    <input type="text" id="wa-admin-phone" value="${whatsappApiConfig.adminTestPhone || '5511999999999'}" placeholder="5511999999999" class="w-full bg-zinc-950 border border-darkBorder rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
                   </div>
                 </div>
 
+                <!-- CARD DINÂMICO DE STATUS DO PING TEST -->
+                <div id="wa-connection-status-card" class="hidden"></div>
+
                 <!-- Botões de Ação -->
                 <div class="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-darkBorder">
-                  <button onclick="handleSaveWhatsAppConfig()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2">
+                  <button id="btn-save-wa-config" onclick="handleSaveWhatsAppConfig()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2">
                     <i data-lucide="check" class="w-4 h-4"></i> Salvar Credenciais no Supabase
                   </button>
-                  <button onclick="handleTestWhatsAppConnection()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2">
-                    <i data-lucide="zap" class="w-4 h-4"></i> Testar Conexão (Ping de Teste)
+                  <button id="btn-test-wa-connection" onclick="testWhatsAppConnection()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2">
+                    <i data-lucide="zap" class="w-4 h-4"></i> Testar Conexão / Ping
                   </button>
                 </div>
               </div>
 
-              <!-- CARD INFORMATIVO DE BOAS PRÁTICAS -->
-              <div class="bg-zinc-950/60 border border-darkBorder rounded-2xl p-5 text-xs text-zinc-400 space-y-2">
-                <div class="flex items-center gap-2 text-white font-bold">
-                  <i data-lucide="info" class="w-4 h-4 text-brand-400"></i> Informações Técnicas de Integração
+              <!-- 4. MANUAL INTERATIVO PASSO A PASSO -->
+              <div class="bg-darkCard border border-darkBorder rounded-2xl overflow-hidden shadow-xl">
+                <button type="button" onclick="toggleWhatsAppManual()" class="w-full p-5 sm:p-6 text-left flex items-center justify-between hover:bg-zinc-900/40 transition">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                      <i data-lucide="book-open" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                        📖 Manual Rápido: Como Conectar seu WhatsApp à KOGNUS em 3 Minutos
+                      </h4>
+                      <p class="text-xs text-zinc-400">Guia passo a passo para configuração do gateway sem bloqueios</p>
+                    </div>
+                  </div>
+                  <i data-lucide="chevron-down" id="wa-manual-icon" class="w-5 h-5 text-zinc-400 transition-transform duration-200"></i>
+                </button>
+
+                <div id="wa-manual-content" class="p-6 pt-2 border-t border-darkBorder/60 space-y-5 text-xs text-zinc-300">
+                  <!-- Passo 1 -->
+                  <div class="space-y-2 bg-zinc-950/60 p-4 rounded-xl border border-darkBorder">
+                    <div class="flex items-center gap-2 font-bold text-brand-300 text-sm">
+                      <span class="w-6 h-6 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-xs font-black">1</span>
+                      Passo 1: Por que não usar a chave da OpenAI aqui?
+                    </div>
+                    <p class="text-zinc-400 leading-relaxed">
+                      A <strong class="text-white">OpenAI (ChatGPT)</strong> é um modelo de inteligência artificial de linguagem textual. Ela gera copys fantásticas, mas <strong class="text-red-400">NÃO se conecta a chips de celular</strong> e não fala o protocolo do WhatsApp. O envio físico exige um <strong class="text-emerald-400">Gateway de WhatsApp</strong> (como a Evolution API ou Z-API), que emula a sessão do WhatsApp Web conectado ao seu aparelho.
+                    </p>
+                  </div>
+
+                  <!-- Passo 2 -->
+                  <div class="space-y-2 bg-zinc-950/60 p-4 rounded-xl border border-darkBorder">
+                    <div class="flex items-center gap-2 font-bold text-emerald-400 text-sm">
+                      <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-black">2</span>
+                      Passo 2: Opção Gratuita com Evolution API (Open Source)
+                    </div>
+                    <p class="text-zinc-400 leading-relaxed">
+                      A <strong class="text-white">Evolution API</strong> é 100% gratuita, brasileira e open-source. Você pode subir sua instância em 1 clique na <strong class="text-white">Railway</strong> ou <strong class="text-white">Render</strong>, ou rodar localmente no seu servidor/computador com Docker:
+                    </p>
+                    <div class="relative bg-zinc-950 border border-zinc-800 rounded-lg p-3 font-mono text-[11px] text-emerald-300 overflow-x-auto flex items-center justify-between">
+                      <code>docker run -d -p 8080:8080 atendai/evolution-api</code>
+                      <button type="button" onclick="navigator.clipboard.writeText('docker run -d -p 8080:8080 atendai/evolution-api'); showToast('Comando Docker copiado!', 'info')" class="text-zinc-400 hover:text-white transition ml-2">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Passo 3 -->
+                  <div class="space-y-2 bg-zinc-950/60 p-4 rounded-xl border border-darkBorder">
+                    <div class="flex items-center gap-2 font-bold text-amber-400 text-sm">
+                      <span class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs font-black">3</span>
+                      Passo 3: Gerar o QR Code e Parear o WhatsApp
+                    </div>
+                    <p class="text-zinc-400 leading-relaxed">
+                      Acesse o painel web da sua Evolution API (ex: <code class="text-white font-mono">http://localhost:8080</code> ou o domínio gerado na Railway). Crie uma nova instância chamada <code class="text-emerald-300 font-mono font-bold">kognus-admin</code>. Em seguida, clique em <strong class="text-white">"Conectar"</strong>, abra o aplicativo WhatsApp no seu celular, vá em <strong class="text-white">Aparelhos Conectados &gt; Conectar Aparelho</strong> e aponte a câmera para escanear o QR Code.
+                    </p>
+                  </div>
+
+                  <!-- Passo 4 -->
+                  <div class="space-y-2 bg-zinc-950/60 p-4 rounded-xl border border-darkBorder">
+                    <div class="flex items-center gap-2 font-bold text-teal-400 text-sm">
+                      <span class="w-6 h-6 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center text-xs font-black">4</span>
+                      Passo 4: Conectar na KOGNUS e Executar o Ping Test
+                    </div>
+                    <p class="text-zinc-400 leading-relaxed">
+                      Cole a URL da sua API (ex: <code class="text-white font-mono">https://sua-api.up.railway.app</code>) e a chave secreta gerada (<code class="text-white font-mono">apikey</code>) nos campos acima. Clique no botão <strong class="text-emerald-400">"Testar Conexão / Ping"</strong>. Assim que o card verde <strong class="text-emerald-400">🟢 Instância Conectada e Pronta!</strong> aparecer na tela e a mensagem de teste chegar no seu WhatsApp, seus disparos em massa estarão 100% ativos e seguros!
+                    </p>
+                  </div>
                 </div>
-                <p>• As configurações são sincronizadas automaticamente na tabela <code class="text-brand-300 font-mono">admin_whatsapp_config</code> do Supabase.</p>
-                <p>• O motor de envio aplica automaticamente um intervalo de 2.000ms a 3.000ms entre requisições para evitar triggers de detecção de spam e bloqueios de chip pela Meta.</p>
-                <p>• Certifique-se de que sua instância na Evolution API ou Z-API esteja devidamente pareada via QR Code.</p>
               </div>
             </div>
           ` : ''}
@@ -3656,6 +3785,121 @@
 
     // ==========================================
     // HANDLERS DO CRM & MOTOR DE WHATSAPP KOGNUS
+
+    // SINCRONIZAÇÃO EM TEMPO REAL DO CRM DE INSTRUTORES (SUPABASE REALTIME + CROSS-TAB)
+    let adminUsersSubscription = null;
+
+    function renderAdminCRMTable() {
+      const v = document.getElementById('app-viewport');
+      if (v && (currentView === 'dashboard-admin' || currentView === 'superadmin' || currentView === 'admin-dash')) {
+        v.innerHTML = renderAdminDashboard();
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+          lucide.createIcons();
+        }
+      }
+    }
+    window.renderAdminCRMTable = renderAdminCRMTable;
+
+    function setupAdminRealtimeUsersChannel() {
+      if (typeof window === 'undefined') return;
+
+      // 1. Escuta em Tempo Real do Supabase na tabela users
+      if (db && typeof db.channel === 'function') {
+        if (window.adminUsersSubscription && typeof window.adminUsersSubscription.unsubscribe === 'function') {
+          try { window.adminUsersSubscription.unsubscribe(); } catch(e) {}
+        }
+        window.adminUsersSubscription = db
+          .channel('admin-users-crm')
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, payload => {
+            const updatedUser = payload.new;
+            if (!updatedUser) return;
+
+            // Atualiza o usuário na memória do admin
+            const index = state.allUsers ? state.allUsers.findIndex(u => u.id === updatedUser.id) : -1;
+            if (index !== -1) {
+              state.allUsers[index] = { ...state.allUsers[index], ...updatedUser };
+            }
+
+            // Sincroniza também na lista de instrutores
+            const email = (updatedUser.email || '').toLowerCase().trim();
+            const instIdx = state.instructors.findIndex(u => (u.id && updatedUser.id && u.id === updatedUser.id) || (u.email && u.email.toLowerCase().trim() === email));
+            const newPhone = updatedUser.phone || updatedUser.school_whatsapp || '';
+            if (instIdx !== -1) {
+              state.instructors[instIdx] = {
+                ...state.instructors[instIdx],
+                ...updatedUser,
+                phone: newPhone || state.instructors[instIdx].phone,
+                school_whatsapp: updatedUser.school_whatsapp || state.instructors[instIdx].school_whatsapp
+              };
+            }
+            try {
+              localStorage.setItem('kognus_instructors', JSON.stringify(state.instructors));
+            } catch(e) {}
+
+            // Re-renderiza a tabela do CRM instantaneamente
+            if (currentView === 'dashboard-admin' || currentView === 'superadmin' || currentView === 'admin-dash') {
+              renderAdminCRMTable();
+              showToast(`Número de ${updatedUser.name} atualizado no CRM!`);
+            }
+          })
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, payload => {
+            const newUser = payload.new;
+            if (!newUser) return;
+            if (state.allUsers && !state.allUsers.some(u => u.id === newUser.id)) {
+              state.allUsers.unshift(newUser);
+            }
+            if (newUser.role === 'instrutor') {
+              const email = (newUser.email || '').toLowerCase().trim();
+              if (!state.instructors.some(i => i.email && i.email.toLowerCase().trim() === email)) {
+                state.instructors.unshift({
+                  id: newUser.id,
+                  name: newUser.name,
+                  email: newUser.email,
+                  phone: newUser.phone || newUser.school_whatsapp || '',
+                  school_whatsapp: newUser.school_whatsapp || newUser.phone || '',
+                  school: newUser.school_name || 'Minha Escola',
+                  coursesCount: 0,
+                  status: newUser.status || 'ativo',
+                  subscription_status: newUser.subscription_status || 'active',
+                  mrr: 89.90,
+                  createdAt: new Date().toLocaleDateString('pt-BR')
+                });
+                try {
+                  localStorage.setItem('kognus_instructors', JSON.stringify(state.instructors));
+                } catch(e) {}
+              }
+            }
+            if (currentView === 'dashboard-admin' || currentView === 'superadmin' || currentView === 'admin-dash') {
+              renderAdminCRMTable();
+              showToast(`Novo instrutor ${newUser.name || ''} registrado no CRM!`);
+            }
+          })
+          .subscribe();
+      }
+
+      // 2. Listener Cross-Tab nativo no localStorage (sync imediato 0ms entre abas locais)
+      if (!window._adminCrmStorageListenerBound) {
+        window._adminCrmStorageListenerBound = true;
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'kognus_user_updated' && e.newValue) {
+            try {
+              const data = JSON.parse(e.newValue);
+              if (data && data.email && data.phone) {
+                const idx = state.instructors.findIndex(i => i.email && i.email.toLowerCase().trim() === data.email.toLowerCase().trim());
+                if (idx !== -1) {
+                  state.instructors[idx].phone = data.phone;
+                  state.instructors[idx].school_whatsapp = data.phone;
+                }
+                renderAdminCRMTable();
+                showToast(`Número de ${state.instructors[idx]?.name || data.email} atualizado no CRM!`);
+              }
+            } catch(err) {}
+          }
+        });
+      }
+    }
+    window.setupAdminRealtimeUsersChannel = setupAdminRealtimeUsersChannel;
+
     // ==========================================
 
     function switchAdminTab(tabName) {
@@ -3757,13 +4001,16 @@
       if (!inst) return;
       quickWhatsAppTarget = inst;
 
+      const latestUserObj = state.allUsers ? state.allUsers.find(u => u.email && u.email.toLowerCase().trim() === email.toLowerCase().trim()) : null;
+      const latestPhone = (latestUserObj && (latestUserObj.phone || latestUserObj.school_whatsapp)) || inst.phone || inst.school_whatsapp || '+5511999999999';
+
       const modal = document.getElementById('modal-quick-whatsapp');
       const recipInfo = document.getElementById('quick-wa-recipient-info');
       const phoneInput = document.getElementById('quick-wa-phone');
       const msgInput = document.getElementById('quick-wa-message');
 
       if (recipInfo) recipInfo.textContent = inst.name + ' • ' + inst.school;
-      if (phoneInput) phoneInput.value = inst.phone || '+5511999999999';
+      if (phoneInput) phoneInput.value = latestPhone;
 
       if (msgInput && !msgInput.value.trim()) {
         setQuickMessageTemplate('boas_vindas');
@@ -3818,8 +4065,7 @@
       const rawPhone = phoneInput ? phoneInput.value : '';
       const rawMsg = msgInput ? msgInput.value : '';
 
-      const cleanPhone = rawPhone.replace(/\D/g, '');
-      const finalPhone = cleanPhone.startsWith('55') ? cleanPhone : ('55' + cleanPhone);
+      const finalPhone = formatToE164(rawPhone);
 
       const target = quickWhatsAppTarget || { name: 'Contato', school: 'Escola' };
       const logEntry = {
@@ -3829,7 +4075,7 @@
         recipientEmail: target.email || '',
         recipientSchool: target.school,
         message: rawMsg,
-        status: 'sent',
+        status: 'enviado',
         createdAt: new Date().toLocaleString('pt-BR')
       };
       broadcastLogs.unshift(logEntry);
@@ -3856,20 +4102,21 @@
         return;
       }
 
+      const finalPhone = formatToE164(rawPhone);
       const target = quickWhatsAppTarget || { name: 'Contato', school: 'Escola', email: '' };
       showToast('Enviando mensagem via API...', 'info');
 
       try {
-        await sendWhatsAppApiRequest(rawPhone, rawMsg);
+        await sendWhatsAppApiRequest(finalPhone, rawMsg);
 
         const logEntry = {
           id: 'wa_' + Date.now(),
           recipientName: target.name,
-          recipientPhone: rawPhone,
+          recipientPhone: finalPhone,
           recipientEmail: target.email || '',
           recipientSchool: target.school,
           message: rawMsg,
-          status: 'sent',
+          status: 'enviado',
           createdAt: new Date().toLocaleString('pt-BR')
         };
         broadcastLogs.unshift(logEntry);
@@ -3881,11 +4128,11 @@
           try {
             await db.from('admin_broadcast_logs').insert([{
               recipient_name: target.name,
-              recipient_phone: rawPhone,
+              recipient_phone: finalPhone,
               recipient_email: target.email || '',
               recipient_school: target.school,
               message: rawMsg,
-              status: 'sent',
+              status: 'enviado',
               created_at: new Date().toISOString()
             }]);
           } catch(e) {}
@@ -3894,11 +4141,57 @@
         closeQuickWhatsAppModal();
         showToast('Mensagem enviada com sucesso para ' + target.name + '!', 'success');
       } catch(err) {
+        const failEntry = {
+          id: 'wa_fail_' + Date.now(),
+          recipientName: target.name,
+          recipientPhone: finalPhone,
+          recipientEmail: target.email || '',
+          recipientSchool: target.school,
+          message: rawMsg,
+          status: 'falhou',
+          createdAt: new Date().toLocaleString('pt-BR')
+        };
+        broadcastLogs.unshift(failEntry);
+        try {
+          localStorage.setItem('kognus_broadcast_logs', JSON.stringify(broadcastLogs));
+        } catch(e) {}
+
+        if (db) {
+          try {
+            await db.from('admin_broadcast_logs').insert([{
+              recipient_name: target.name,
+              recipient_phone: finalPhone,
+              recipient_email: target.email || '',
+              recipient_school: target.school,
+              message: rawMsg,
+              status: 'falhou',
+              created_at: new Date().toISOString()
+            }]);
+          } catch(eDb) {}
+        }
         showToast('Erro ao disparar via API: ' + (err.message || 'Falha de comunicação'), 'error');
       }
     }
 
-    // MOTOR DE DISPAROS EM MASSA (ASYNC COM INTERVALO DE SEGURANÇA ANTI-BAN)
+    // FORMATAÇÃO RIGOROSA NO PADRÃO INTERNACIONAL E.164 (DDI + DDD + TELEFONE)
+    function formatToE164(phone) {
+      if (!phone) return '5511999999999';
+      let cleaned = String(phone).replace(/\D/g, '');
+      if (!cleaned) return '5511999999999';
+      if (!cleaned.startsWith('55')) {
+        if (cleaned.length === 10 || cleaned.length === 11) {
+          cleaned = '55' + cleaned;
+        } else if (cleaned.length === 8 || cleaned.length === 9) {
+          cleaned = '5511' + cleaned;
+        } else {
+          cleaned = '55' + cleaned;
+        }
+      }
+      return cleaned;
+    }
+    window.formatToE164 = formatToE164;
+
+    // MOTOR DE DISPAROS EM MASSA (ASYNC COM INTERVALO DE SEGURANÇA ANTI-BAN & LOG DE STATUS)
     async function startWhatsAppBroadcast() {
       if (isBroadcasting) return;
 
@@ -3939,11 +4232,32 @@
       if (progressContainer) progressContainer.classList.remove('hidden');
       if (submitBtn) submitBtn.disabled = true;
 
+      // Sincroniza telefones mais recentes da tabela users antes do disparo
+      if (db) {
+        try {
+          const { data: latestUsers } = await db.from('users').select('*');
+          if (latestUsers && latestUsers.length) {
+            state.allUsers = latestUsers;
+            latestUsers.forEach(u => {
+              const idx = state.instructors.findIndex(i => i.email && i.email.toLowerCase().trim() === (u.email || '').toLowerCase().trim());
+              if (idx !== -1) {
+                state.instructors[idx].phone = u.phone || u.school_whatsapp || state.instructors[idx].phone;
+                state.instructors[idx].school_whatsapp = u.school_whatsapp || u.phone || state.instructors[idx].school_whatsapp;
+              }
+            });
+          }
+        } catch(e) {}
+      }
+
       const masterCheckoutUrl = localStorage.getItem('kognus_master_checkout_url') || state.masterCheckoutUrl || 'https://pay.kiwify.com.br/kognus-mensalidade-saas';
       let sentCount = 0;
+      let failedCount = 0;
 
       for (let i = 0; i < recipients.length; i++) {
         const target = recipients[i];
+        const latestUserObj = state.allUsers ? state.allUsers.find(u => u.email && u.email.toLowerCase().trim() === target.email.toLowerCase().trim()) : null;
+        const targetPhone = formatToE164((latestUserObj && (latestUserObj.phone || latestUserObj.school_whatsapp)) || target.phone || target.school_whatsapp || '+5511999999999');
+
         const currentNum = i + 1;
         const total = recipients.length;
         const pct = Math.round((currentNum / total) * 100);
@@ -3951,7 +4265,7 @@
         if (progressBar) progressBar.style.width = pct + '%';
         if (progressPercent) progressPercent.textContent = pct + '%';
         if (progressLabel) progressLabel.textContent = 'Enviando ' + currentNum + ' de ' + total + '...';
-        if (progressStatus) progressStatus.textContent = 'Disparando para ' + target.name + ' (' + (target.phone || target.email) + ')...';
+        if (progressStatus) progressStatus.textContent = 'Disparando para ' + target.name + ' (' + targetPhone + ')...';
 
         // Personaliza tags dinâmicas
         const targetCoursesCount = (state.courses || []).filter(c => (c.instructorEmail && c.instructorEmail.toLowerCase().trim() === target.email.toLowerCase().trim()) || (c.instructor && c.instructor.toLowerCase() === target.name.toLowerCase())).length;
@@ -3962,16 +4276,16 @@
           .replace(/\{\{link_pagamento\}\}/gi, masterCheckoutUrl);
 
         try {
-          await sendWhatsAppApiRequest(target.phone || '+5511999999999', personalizedMsg);
+          await sendWhatsAppApiRequest(targetPhone, personalizedMsg);
 
           const logEntry = {
             id: 'bcast_' + Date.now() + '_' + i,
             recipientName: target.name,
-            recipientPhone: target.phone || target.email,
+            recipientPhone: targetPhone,
             recipientSchool: target.school,
             recipientEmail: target.email || '',
             message: personalizedMsg,
-            status: 'sent',
+            status: 'enviado',
             createdAt: new Date().toLocaleString('pt-BR')
           };
           broadcastLogs.unshift(logEntry);
@@ -3980,11 +4294,11 @@
             try {
               await db.from('admin_broadcast_logs').insert([{
                 recipient_name: target.name,
-                recipient_phone: target.phone || '',
+                recipient_phone: targetPhone,
                 recipient_email: target.email || '',
                 recipient_school: target.school,
                 message: personalizedMsg,
-                status: 'sent',
+                status: 'enviado',
                 created_at: new Date().toISOString()
               }]);
             } catch(e) {}
@@ -3992,11 +4306,37 @@
           sentCount++;
         } catch(e) {
           console.warn('[Broadcast Error for recipient]', target.email, e);
+          const failEntry = {
+            id: 'bcast_fail_' + Date.now() + '_' + i,
+            recipientName: target.name,
+            recipientPhone: targetPhone,
+            recipientSchool: target.school,
+            recipientEmail: target.email || '',
+            message: personalizedMsg,
+            status: 'falhou',
+            createdAt: new Date().toLocaleString('pt-BR')
+          };
+          broadcastLogs.unshift(failEntry);
+
+          if (db) {
+            try {
+              await db.from('admin_broadcast_logs').insert([{
+                recipient_name: target.name,
+                recipient_phone: targetPhone,
+                recipient_email: target.email || '',
+                recipient_school: target.school,
+                message: personalizedMsg,
+                status: 'falhou',
+                created_at: new Date().toISOString()
+              }]);
+            } catch(eDb) {}
+          }
+          failedCount++;
         }
 
-        // Intervalo de segurança anti-ban de chip (2.0 segundos entre requisições)
+        // Intervalo de segurança anti-ban de chip (2.5 segundos entre requisições)
         if (i < recipients.length - 1) {
-          await new Promise(r => setTimeout(r, 2000));
+          await new Promise(r => setTimeout(r, 2500));
         }
       }
 
@@ -4005,34 +4345,152 @@
         localStorage.setItem('kognus_broadcast_logs', JSON.stringify(broadcastLogs));
       } catch(e) {}
 
-      if (progressStatus) progressStatus.textContent = 'Disparo finalizado com sucesso!';
-      if (progressLabel) progressLabel.textContent = 'Concluído: ' + sentCount + ' mensagens enviadas.';
+      if (progressStatus) progressStatus.textContent = 'Disparo finalizado! ' + sentCount + ' enviados com sucesso' + (failedCount > 0 ? ', ' + failedCount + ' falhas.' : '.');
+      if (progressLabel) progressLabel.textContent = 'Concluído: ' + sentCount + ' mensagens entregues.';
       if (submitBtn) submitBtn.disabled = false;
 
-      showToast('Disparo em massa concluído com sucesso (' + sentCount + ' mensagens)!', 'success');
+      showToast('Disparo em massa concluído (' + sentCount + ' mensagens enviadas)!', 'success');
       switchAdminTab('broadcast');
     }
+    const handleSendBroadcast = startWhatsAppBroadcast;
+    window.startWhatsAppBroadcast = startWhatsAppBroadcast;
+    window.handleSendBroadcast = handleSendBroadcast;
 
-    // CONFIGURAÇÃO DA API DE WHATSAPP
+    // CONFIGURAÇÃO DA API DE WHATSAPP & VISIBILIDADE DE TOKENS
     function toggleWaTokenVisibility() {
       const input = document.getElementById('wa-api-token');
+      const eye = document.getElementById('wa-token-eye');
       if (input) {
-        input.type = input.type === 'password' ? 'text' : 'password';
+        const isPass = input.type === 'password';
+        input.type = isPass ? 'text' : 'password';
+        if (eye) {
+          eye.setAttribute('data-lucide', isPass ? 'eye-off' : 'eye');
+          if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
       }
     }
+    window.toggleWaTokenVisibility = toggleWaTokenVisibility;
 
+    function toggleOpenAiKeyVisibility() {
+      const input = document.getElementById('openai-api-key');
+      const eye = document.getElementById('openai-token-eye');
+      if (input) {
+        const isPass = input.type === 'password';
+        input.type = isPass ? 'text' : 'password';
+        if (eye) {
+          eye.setAttribute('data-lucide', isPass ? 'eye-off' : 'eye');
+          if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+      }
+    }
+    window.toggleOpenAiKeyVisibility = toggleOpenAiKeyVisibility;
+
+    function toggleWhatsAppManual() {
+      const content = document.getElementById('wa-manual-content');
+      const icon = document.getElementById('wa-manual-icon');
+      if (content) {
+        content.classList.toggle('hidden');
+        if (icon) {
+          icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+      }
+    }
+    window.toggleWhatsAppManual = toggleWhatsAppManual;
+
+    // REFINAMENTO DE MENSAGEM COM IA (OPENAI COPYWRITER)
+    async function improveBroadcastMessageWithOpenAI() {
+      const textarea = document.getElementById('broadcast-message-text');
+      const currentMsg = (textarea ? textarea.value : broadcastCurrentMessage) || '';
+      if (!currentMsg.trim()) {
+        showToast('Escreva ao menos um rascunho de mensagem antes de refinar com IA.', 'warning');
+        return;
+      }
+
+      const apiKey = (document.getElementById('openai-api-key')?.value.trim()) || whatsappApiConfig.openaiApiKey || '';
+      if (!apiKey) {
+        showToast('Configure sua chave da OpenAI (sk-...) na aba "Configurações de API WhatsApp" primeiro.', 'warning');
+        switchAdminTab('api-config');
+        return;
+      }
+
+      const btn = document.getElementById('btn-improve-openai');
+      const originalBtnHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-yellow-300 inline"></i> Refinando com OpenAI...';
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+      }
+
+      showToast('Refinando tom da mensagem com OpenAI...', 'info');
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'Você é um redator sênior especialista em copywriting para WhatsApp na plataforma de cursos KOGNUS. Seu objetivo é reescrever a mensagem fornecida tornando-a persuasiva, cordial, profissional e direta, otimizada para leitura no WhatsApp. MANTENHA OBRIGATORIAMENTE todas as tags de variáveis dinâmicas existentes como {{nome}}, {{escola}}, {{cursos_publicados}} e {{link_pagamento}}. Não acrescente aspas ao redor da mensagem final nem explicações adicionais.'
+              },
+              {
+                role: 'user',
+                content: 'Reescreva e melhore esta mensagem para WhatsApp:\n\n' + currentMsg
+              }
+            ],
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || ('Erro HTTP ' + response.status));
+        }
+
+        const data = await response.json();
+        const refined = data?.choices?.[0]?.message?.content?.trim();
+        if (refined) {
+          broadcastCurrentMessage = refined;
+          if (textarea) textarea.value = refined;
+          const counter = document.getElementById('broadcast-char-counter');
+          if (counter) counter.textContent = refined.length + ' caracteres';
+          updateBroadcastPreview();
+          showToast('Mensagem aprimorada com sucesso pela IA!', 'success');
+        } else {
+          throw new Error('Nenhum texto retornado pela OpenAI.');
+        }
+      } catch(err) {
+        console.warn('[OpenAI Improve Error]', err);
+        showToast('Falha na OpenAI: ' + (err.message || 'Verifique sua chave de API'), 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalBtnHtml;
+          if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
+      }
+    }
+    window.improveBroadcastMessageWithOpenAI = improveBroadcastMessageWithOpenAI;
+
+    // SALVAMENTO DE CONFIGURAÇÕES DO GATEWAY & OPENAI
     async function handleSaveWhatsAppConfig() {
       const provider = document.getElementById('wa-provider')?.value || 'evolution';
-      const baseUrl = document.getElementById('wa-base-url')?.value.trim() || 'https://api.meuservidor.com';
-      const instanceName = document.getElementById('wa-instance-name')?.value.trim() || 'kognus_admin';
+      const baseUrl = document.getElementById('wa-base-url')?.value.trim() || '';
+      const instanceName = document.getElementById('wa-instance-name')?.value.trim() || 'kognus-admin';
       const apiToken = document.getElementById('wa-api-token')?.value.trim() || '';
-      const adminTestPhone = document.getElementById('wa-admin-phone')?.value.trim() || '5511999999999';
+      const openaiApiKey = document.getElementById('openai-api-key')?.value.trim() || '';
+      const adminTestPhone = formatToE164(document.getElementById('wa-admin-phone')?.value.trim() || '5511999999999');
 
       whatsappApiConfig = {
         provider,
         baseUrl,
         instanceName,
         apiToken,
+        openaiApiKey,
         adminTestPhone
       };
 
@@ -4047,6 +4505,7 @@
             base_url: baseUrl,
             instance_name: instanceName,
             api_token: apiToken,
+            openai_api_key: openaiApiKey,
             admin_test_phone: adminTestPhone,
             updated_at: new Date().toISOString()
           }]);
@@ -4056,28 +4515,176 @@
       showToast('Credenciais da API salvas com sucesso no Supabase!', 'success');
       switchAdminTab('api-config');
     }
+    window.handleSaveWhatsAppConfig = handleSaveWhatsAppConfig;
 
-    async function handleTestWhatsAppConnection() {
-      const adminPhone = document.getElementById('wa-admin-phone')?.value.trim() || whatsappApiConfig.adminTestPhone || '5511999999999';
-      showToast('Testando conexão com a API de WhatsApp...', 'info');
+    // TESTE DE CONEXÃO REAL (PING TEST VERDADEIRO COM EVOLUTION API / Z-API)
+    async function testWhatsAppConnection() {
+      const provider = document.getElementById('wa-provider')?.value || whatsappApiConfig.provider || 'evolution';
+      const baseUrl = (document.getElementById('wa-base-url')?.value.trim() || whatsappApiConfig.baseUrl || '').replace(/\/+$/, '');
+      const instanceName = (document.getElementById('wa-instance-name')?.value.trim() || whatsappApiConfig.instanceName || 'kognus-admin');
+      const apiToken = (document.getElementById('wa-api-token')?.value.trim() || whatsappApiConfig.apiToken || '');
+      const adminPhone = formatToE164(document.getElementById('wa-admin-phone')?.value.trim() || whatsappApiConfig.adminTestPhone || '5511999999999');
+
+      whatsappApiConfig.provider = provider;
+      if (baseUrl) whatsappApiConfig.baseUrl = baseUrl;
+      if (instanceName) whatsappApiConfig.instanceName = instanceName;
+      if (apiToken) whatsappApiConfig.apiToken = apiToken;
+      if (adminPhone) whatsappApiConfig.adminTestPhone = adminPhone;
+
+      const btn = document.getElementById('btn-test-wa-connection');
+      const statusCard = document.getElementById('wa-connection-status-card');
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin inline"></i> 🔄 Testando comunicação com o gateway...';
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+      }
+
+      if (statusCard) {
+        statusCard.classList.remove('hidden');
+        statusCard.innerHTML = `
+          <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs flex items-center gap-2.5">
+            <span class="animate-spin text-base">🔄</span>
+            <div>
+              <p class="font-bold">Testando comunicação com o gateway de WhatsApp...</p>
+              <p class="text-[11px] text-zinc-400 font-mono mt-0.5">Consultando endpoint oficial da instância "${instanceName}" em ${baseUrl || 'servidor'}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      showToast('🔄 Testando comunicação com o gateway...', 'info');
 
       try {
-        const testMsg = '[KOGNUS ADMIN] Ping de teste de conexão com o WhatsApp realizado com sucesso! Instância: ' + (whatsappApiConfig.instanceName || 'kognus_admin') + ' está operacional.';
+        if (!baseUrl || !apiToken) {
+          throw new Error('Preencha a URL Base e a API Key antes de executar o teste de ping.');
+        }
+
+        // Se for ambiente mock / sandbox local de desenvolvimento
+        if (baseUrl.includes('meuservidor.com') || (baseUrl.includes('localhost') && typeof fetch === 'undefined')) {
+          await new Promise(r => setTimeout(r, 500));
+          if (statusCard) {
+            statusCard.classList.remove('hidden');
+            statusCard.innerHTML = `
+              <div class="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-xs space-y-1.5 shadow-lg animate-fadeIn">
+                <div class="flex items-center gap-2 font-bold text-emerald-400 text-sm">
+                  🟢 Instância Conectada e Pronta! (WhatsApp sincronizado)
+                </div>
+                <p class="text-zinc-300 leading-relaxed">
+                  Instância <strong class="text-white">${instanceName}</strong> verificada com sucesso em ambiente de simulação. Mensagem de teste enviada para <code class="text-white font-mono font-bold">${adminPhone}</code>.
+                </p>
+              </div>
+            `;
+          }
+          await sendWhatsAppApiRequest(adminPhone, '🔔 Teste KOGNUS: Conexão com seu WhatsApp estabelecida com sucesso!');
+          showToast('🟢 Instância Conectada e Pronta! Mensagem de teste enviada.', 'success');
+          return;
+        }
+
+        let pingUrl = '';
+        let headers = {};
+
+        if (provider === 'evolution') {
+          // Evolution API oficial: GET /instance/connectionState/{instanceName}
+          pingUrl = `${baseUrl}/instance/connectionState/${instanceName}`;
+          headers = {
+            'apikey': apiToken
+          };
+        } else if (provider === 'z-api') {
+          // Z-API oficial: GET /instances/{instanceId}/token/{token}/status
+          pingUrl = `${baseUrl}/instances/${instanceName}/token/${apiToken}/status`;
+          headers = {
+            'Client-Token': apiToken
+          };
+        } else {
+          // Custom REST Webhook
+          pingUrl = `${baseUrl}/ping`;
+          headers = {
+            'Authorization': 'Bearer ' + apiToken
+          };
+        }
+
+        const res = await fetch(pingUrl, {
+          method: 'GET',
+          headers
+        });
+
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            throw new Error(`Erro 401/401: Chave de API Key não autorizada. Verifique a API Key / Secret Token da instância.`);
+          } else if (res.status === 404) {
+            throw new Error(`Erro 404: Instância '${instanceName}' não encontrada na URL informada. Verifique o nome da instância e a URL Base.`);
+          } else {
+            throw new Error(`Erro HTTP ${res.status}: ${res.statusText}`);
+          }
+        }
+
+        const data = await res.json().catch(() => ({}));
+        
+        // Avaliação de estado retornado pela instância
+        const rawState = data.instance?.state || data.state || data.status || data.connection?.state || (data.connected ? 'open' : 'unknown');
+        const isConnected = rawState === 'open' || rawState === 'connected' || data.connected === true;
+
+        if (!isConnected) {
+          throw new Error(`🔴 Falha: Instância desconectada (necessário ler QR Code). Status retornado: '${rawState || 'close'}'`);
+        }
+
+        // RESULTADO POSITIVO
+        if (statusCard) {
+          statusCard.classList.remove('hidden');
+          statusCard.innerHTML = `
+            <div class="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-xs space-y-1.5 shadow-lg animate-fadeIn">
+              <div class="flex items-center gap-2 font-bold text-emerald-400 text-sm">
+                🟢 Instância Conectada e Pronta! (WhatsApp sincronizado)
+              </div>
+              <p class="text-zinc-300 leading-relaxed">
+                A instância <strong class="text-white">${instanceName}</strong> está ativa e operacional no WhatsApp Web. Disparando mensagem de teste para <code class="text-emerald-300 font-mono font-bold">${adminPhone}</code>...
+              </p>
+            </div>
+          `;
+        }
+
+        // Dispara mensagem real de teste para o número do administrador
+        const testMsg = '🔔 Teste KOGNUS: Conexão com seu WhatsApp estabelecida com sucesso!';
         await sendWhatsAppApiRequest(adminPhone, testMsg);
-        showToast('Conexão testada com sucesso! Resposta positiva da API.', 'success');
+
+        showToast('🟢 Instância Conectada e Pronta! (WhatsApp sincronizado)', 'success');
+
       } catch(err) {
-        showToast('Alerta de conexão: ' + (err.message || 'Verifique se a URL e o token estão corretos.'), 'warning');
+        console.warn('[WhatsApp Ping Test Error]', err);
+        if (statusCard) {
+          statusCard.classList.remove('hidden');
+          statusCard.innerHTML = `
+            <div class="p-4 rounded-xl bg-red-500/15 border border-red-500/40 text-xs space-y-1.5 shadow-lg animate-fadeIn">
+              <div class="flex items-center gap-2 font-bold text-red-400 text-sm">
+                <span>🔴</span> Falha no Teste de Conexão com o Gateway
+              </div>
+              <p class="text-zinc-300 font-mono text-[11px] leading-relaxed break-words">
+                ${err.message || 'Verifique se a URL Base, Nome da Instância e a API Key estão corretas.'}
+              </p>
+            </div>
+          `;
+        }
+        showToast('Falha no ping test: ' + (err.message || 'Erro de comunicação'), 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="zap" class="w-4 h-4 inline"></i> Testar Conexão / Ping';
+          if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+        }
       }
     }
+    const handleTestWhatsAppConnection = testWhatsAppConnection;
+    window.testWhatsAppConnection = testWhatsAppConnection;
+    window.handleTestWhatsAppConnection = handleTestWhatsAppConnection;
 
-    // DISPATCHER CENTRAL DE REQUISIÇÕES WHATSAPP
+    // DISPATCHER CENTRAL DE REQUISIÇÕES WHATSAPP (PAYLOAD RIGOROSO CONFORME O GATEWAY)
     async function sendWhatsAppApiRequest(phone, messageText) {
-      const cleanPhone = (phone || '').replace(/\D/g, '');
-      const finalPhone = cleanPhone.startsWith('55') ? cleanPhone : ('55' + cleanPhone);
+      const finalPhone = formatToE164(phone);
       const { provider, baseUrl, instanceName, apiToken } = whatsappApiConfig;
 
       // Se for ambiente local ou URL mock, simula entrega imediata com sucesso
-      if (!baseUrl || baseUrl.includes('meuservidor.com') || baseUrl.includes('localhost') || !apiToken) {
+      if (!baseUrl || baseUrl.includes('meuservidor.com') || (baseUrl.includes('localhost') && typeof fetch === 'undefined') || !apiToken) {
         console.log('[WhatsApp Engine: Sandbox / Simulated Send]', { phone: finalPhone, provider, text: messageText });
         return { success: true, simulated: true, id: 'sim_' + Date.now() };
       }
@@ -4086,16 +4693,17 @@
       let headers = { 'Content-Type': 'application/json' };
       let bodyData = {};
 
+      const cleanBase = baseUrl.replace(/\/+$/, '');
+
       if (provider === 'evolution') {
-        endpoint = baseUrl.replace(/\/+$/, '') + '/message/sendText/' + instanceName;
+        endpoint = cleanBase + '/message/sendText/' + instanceName;
         headers['apikey'] = apiToken;
         bodyData = {
           number: finalPhone,
-          text: messageText,
-          options: { delay: 1200, presence: 'composing' }
+          text: messageText
         };
       } else if (provider === 'z-api') {
-        endpoint = baseUrl.replace(/\/+$/, '') + '/instances/' + instanceName + '/token/' + apiToken + '/send-text';
+        endpoint = cleanBase + '/instances/' + instanceName + '/token/' + apiToken + '/send-text';
         headers['Client-Token'] = apiToken;
         bodyData = {
           phone: finalPhone,
@@ -4103,29 +4711,30 @@
         };
       } else {
         // Custom REST Endpoint
-        endpoint = baseUrl;
+        endpoint = cleanBase;
         headers['Authorization'] = 'Bearer ' + apiToken;
         bodyData = {
+          number: finalPhone,
           phone: finalPhone,
+          text: messageText,
           message: messageText
         };
       }
 
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(bodyData)
-        });
-        if (!res.ok) {
-          throw new Error('HTTP ' + res.status + ': ' + res.statusText);
-        }
-        return await res.json();
-      } catch(e) {
-        console.warn('[WhatsApp API Request Warning]', e.message);
-        return { success: true, fallback: true, warning: e.message };
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bodyData)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error('HTTP ' + res.status + ': ' + (errText || res.statusText));
       }
+
+      return await res.json().catch(() => ({ success: true }));
     }
+    window.sendWhatsAppApiRequest = sendWhatsAppApiRequest;
 
 
     // GESTÃO DE FILTRAGEM DO CATÁLOGO POR CATEGORIAS
@@ -4522,6 +5131,10 @@
             <div>
               <label class="block text-xs font-semibold text-zinc-300 mb-1">E-mail Profissional</label>
               <input type="email" id="inst-email" required placeholder="renato@escola.com" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">WhatsApp / Telefone de Contato</label>
+              <input type="tel" id="reg-instructor-phone" name="inst-phone" placeholder="(11) 99999-9999" oninput="maskWhatsapp(this)" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 font-mono">
             </div>
             <div>
               <label class="block text-xs font-semibold text-zinc-300 mb-1">Senha de Acesso</label>
@@ -5602,14 +6215,28 @@
 
     async function handleInstructorRegister(e) {
       if (e && e.preventDefault) e.preventDefault();
+      let submitBtn = null;
+      let origBtnHtml = '';
+      if (e && e.target && typeof e.target.querySelector === 'function') {
+        submitBtn = e.target.querySelector('button[type="submit"]') || e.target;
+        if (submitBtn && submitBtn.tagName === 'BUTTON') {
+          origBtnHtml = submitBtn.innerHTML;
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Criando Escola & Salvando...</span>';
+        }
+      }
       const nameInput = document.getElementById('inst-name');
       const schoolInput = document.getElementById('inst-school');
       const emailInput = document.getElementById('inst-email');
+      const phoneInput = document.getElementById('reg-instructor-phone') || document.getElementById('inst-phone');
       const passInput = document.getElementById('inst-pass');
 
       const name = nameInput ? nameInput.value.trim() : 'Novo Instrutor';
       const school = schoolInput ? schoolInput.value.trim() : 'Minha Escola';
       const email = emailInput ? emailInput.value.trim().toLowerCase() : 'instrutor@kognus.com';
+      const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+      const cleanDigits = rawPhone.replace(/\D/g, '');
+      const formattedPhone = cleanDigits.length >= 10 ? (cleanDigits.startsWith('55') ? ('+' + cleanDigits) : ('+55' + cleanDigits)) : (rawPhone || '+55 (11) 99999-9999');
       const password = passInput && passInput.value ? passInput.value : 'kognus123';
       const userId = generateUUID();
 
@@ -5619,17 +6246,23 @@
         school,
         school_name: school,
         email,
+        phone: rawPhone || formattedPhone,
+        school_whatsapp: rawPhone || formattedPhone,
         role: 'instrutor',
-        status: 'pendente'
+        status: 'ativo',
+        subscription_status: 'active'
       };
       
       const newRecord = {
         id: user.id,
         name,
         email,
+        phone: rawPhone || formattedPhone,
+        school_whatsapp: rawPhone || formattedPhone,
         school,
         coursesCount: 0,
-        status: 'pendente',
+        status: 'ativo',
+        subscription_status: 'active',
         mrr: 89.90,
         createdAt: new Date().toLocaleDateString('pt-BR')
       };
@@ -5640,45 +6273,44 @@
         state.instructors.unshift(newRecord);
       }
 
+      currentUser = user;
       try {
-        localStorage.setItem('kognus_instructors', JSON.stringify(state.instructors));
+        localStorage.setItem('kognus_user', JSON.stringify(currentUser));
+        localStorage.setItem('kognus_session', JSON.stringify(currentUser));
       } catch(err) {}
 
-      // Visual de loading no botão submit
-      let submitBtn = null;
-      let origBtnHtml = '';
-      if (e && e.target) {
-        submitBtn = e.target.querySelector('button[type="submit"]') || e.target;
-        if (submitBtn && submitBtn.tagName === 'BUTTON') {
-          origBtnHtml = submitBtn.innerHTML;
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Criando Escola & Salvando...</span>';
-        }
-      }
+      loginUserSuccess(user);
 
       // Persistência assíncrona verificada na tabela users do Supabase
       if (db) {
         try {
           const qU = db.from('users');
           if (qU && typeof qU.upsert === 'function') {
-            const { data, error } = await qU.upsert({
-            id: userId,
-            name: name,
-            email: email,
-            role: 'instrutor',
-            school_name: school,
-            status: 'pendente',
-            password_hash: password,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'email' }).select();
+            const userPayload = {
+              id: userId,
+              name: nameInput ? nameInput.value.trim() : name,
+              email: emailInput ? emailInput.value.toLowerCase().trim() : email,
+              phone: (rawPhone || formattedPhone).trim(),
+              school_whatsapp: (rawPhone || formattedPhone).trim(),
+              role: 'instrutor',
+              school_name: schoolInput ? (schoolInput.value.trim() || 'Minha Escola') : school,
+              status: 'ativo',
+              subscription_status: 'active',
+              password_hash: password,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            const { data, error } = await qU.upsert(userPayload, { onConflict: 'email' }).select();
+            try {
+              localStorage.setItem('kognus_user_updated', JSON.stringify({ email: userPayload.email, phone: userPayload.phone, timestamp: Date.now() }));
+            } catch(eSync) {}
 
-          if (error) {
-            console.error('[Supabase Instructor Error]', error);
-            showToast('Aviso: Falha ao salvar no banco Supabase (' + error.message + '). Gravado localmente.', 'warning');
-          } else {
-            console.log('[Supabase Instructor Success]', data);
-          }
+            if (error) {
+              console.error('[Supabase Instructor Error]', error);
+              showToast('Aviso: Falha ao salvar no banco Supabase (' + error.message + '). Gravado localmente.', 'warning');
+            } else {
+              console.log('[Supabase Instructor Success]', data);
+            }
           }
         } catch(err) {
           console.error('[Supabase Instructor Exception]', err);
@@ -5689,8 +6321,6 @@
         submitBtn.disabled = false;
         if (origBtnHtml) submitBtn.innerHTML = origBtnHtml;
       }
-
-      loginUserSuccess(user);
     }
 
     function handleAdminPasswordRenew(e) {
@@ -8885,6 +9515,11 @@
                 <input type="email" id="profile-email" readonly value="${currentUser.email || ''}" class="w-full bg-zinc-900/50 border border-zinc-700/60 text-zinc-400 rounded-lg px-4 py-2.5 text-xs font-mono cursor-not-allowed">
                 <p class="text-[10px] text-zinc-500 mt-1">O e-mail é a chave de vínculo de suas matrículas e não pode ser alterado diretamente.</p>
               </div>
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">WhatsApp / Celular do Instrutor</label>
+                <input type="tel" id="profile-phone-input" placeholder="(11) 99999-9999" oninput="maskWhatsapp(this)" value="${currentUser.phone || currentUser.school_whatsapp || ''}" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+                <p class="text-[10px] text-zinc-500 mt-1">Número de contato comercial sincronizado em tempo real com o CRM do Administrador.</p>
+              </div>
               ${currentUser.role === 'instrutor' ? `
                 <div>
                   <label class="block text-xs font-semibold text-zinc-300 mb-1">Nome da Escola Digital</label>
@@ -8961,6 +9596,9 @@
       const schoolInput = document.getElementById('profile-school');
       const newSchool = schoolInput ? schoolInput.value.trim() : null;
 
+      const phoneInputEl = document.getElementById('profile-phone-input');
+      const updatedPhone = phoneInputEl ? phoneInputEl.value.trim() : null;
+
       const newPass = document.getElementById('profile-new-pass')?.value || '';
       const confirmPass = document.getElementById('profile-confirm-pass')?.value || '';
 
@@ -8984,30 +9622,68 @@
         currentUser.school = newSchool;
         currentUser.school_name = newSchool;
       }
+      if (updatedPhone !== null) {
+        currentUser.phone = updatedPhone;
+        currentUser.school_whatsapp = updatedPhone;
+        const instIdx = state.instructors.findIndex(i => i.email && i.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim());
+        if (instIdx >= 0) {
+          state.instructors[instIdx].phone = updatedPhone;
+          state.instructors[instIdx].school_whatsapp = updatedPhone;
+          try { localStorage.setItem('kognus_instructors', JSON.stringify(state.instructors)); } catch(e) {}
+        }
+        try {
+          localStorage.setItem('kognus_user_updated', JSON.stringify({ email: currentUser.email, phone: updatedPhone, timestamp: Date.now() }));
+        } catch(e) {}
+      }
 
       try {
         localStorage.setItem('kognus_session', JSON.stringify(currentUser));
       } catch(err) {}
 
       // Persistência no Supabase
-      if (db && currentUser.email) {
+      if (db && (currentUser.id || currentUser.email)) {
         try {
-          const updateData = { name: newName };
+          const updateData = {
+            name: newName,
+            updated_at: new Date().toISOString()
+          };
+          if (updatedPhone !== null) {
+            updateData.phone = updatedPhone;
+            updateData.school_whatsapp = updatedPhone;
+          }
+          if (newSchool !== null) updateData.school_name = newSchool;
           if (window.currentProfileAvatar) updateData.avatar_url = window.currentProfileAvatar;
           if (newPass) updateData.password_hash = newPass;
 
           const qU = db.from('users');
           if (qU && typeof qU.update === 'function') {
-            await qU.update(updateData).eq('email', currentUser.email.toLowerCase().trim());
+            let error = null;
+            if (currentUser.id) {
+              const res = await qU.update(updateData).eq('id', currentUser.id);
+              error = res && res.error;
+            } else {
+              const res = await qU.update(updateData).eq('email', currentUser.email.toLowerCase().trim());
+              error = res && res.error;
+            }
+            if (!error && updatedPhone !== null) {
+              showToast('Telefone atualizado com sucesso!');
+            }
           }
         } catch(err) {
           console.warn('[Supabase Profile Update Warning]', err);
         }
       }
+      try {
+        localStorage.setItem('kognus_user', JSON.stringify(currentUser));
+      } catch(e) {}
 
       renderHeader();
       closeProfileModal();
-      showToast('Perfil atualizado com sucesso!', 'success');
+      if (updatedPhone !== null) {
+        showToast('Telefone atualizado com sucesso!');
+      } else {
+        showToast('Perfil atualizado com sucesso!', 'success');
+      }
     }
 
     // =========================================================================
@@ -9064,7 +9740,19 @@
 
       currentUser.school_cnpj = cnpj;
       currentUser.school_whatsapp = whatsapp;
+      currentUser.phone = whatsapp;
       currentUser.school_accent_color = accent;
+
+      const instIdx = state.instructors.findIndex(i => i.email && i.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim());
+      if (instIdx >= 0) {
+        state.instructors[instIdx].phone = whatsapp;
+        state.instructors[instIdx].school_whatsapp = whatsapp;
+        try { localStorage.setItem('kognus_instructors', JSON.stringify(state.instructors)); } catch(e) {}
+      }
+      try {
+        localStorage.setItem('kognus_user', JSON.stringify(currentUser));
+        localStorage.setItem('kognus_user_updated', JSON.stringify({ email: currentUser.email, phone: whatsapp, timestamp: Date.now() }));
+      } catch(e) {}
 
       try {
         localStorage.setItem('kognus_session', JSON.stringify(currentUser));
@@ -9080,11 +9768,18 @@
         try {
           const qU = db.from('users');
           if (qU && typeof qU.update === 'function') {
-            await qU.update({
+            const updatePayload = {
               school_cnpj: cnpj,
               school_whatsapp: whatsapp,
-              school_accent_color: accent
-            }).eq('email', currentUser.email.toLowerCase().trim());
+              phone: whatsapp,
+              school_accent_color: accent,
+              updated_at: new Date().toISOString()
+            };
+            if (currentUser.id) {
+              await qU.update(updatePayload).eq('id', currentUser.id);
+            } else {
+              await qU.update(updatePayload).eq('email', currentUser.email.toLowerCase().trim());
+            }
           }
         } catch(err) {
           console.warn('[Supabase School Identity Warning]', err);
