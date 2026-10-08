@@ -2,18 +2,19 @@
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KOGNUS">
+  <meta name="theme-color" content="#09090b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>KOGNUS — Plataforma Educacional & Creator Studio SaaS</title>
   <meta name="description" content="Plataforma de cursos online e gestão de escolas digitais com 0% de comissão.">
   <link rel="icon" type="image/png" href="logo.png">
-  <link rel="apple-touch-icon" href="logo.png">
-  <meta name="theme-color" content="#4f46e5">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="KOGNUS">
   <link rel="apple-touch-icon" href="logo.png">
 
   <!-- Fontes Google -->
@@ -93,8 +94,53 @@
     .school-accent-border {
       border-color: var(--school-accent) !important;
     }
-    * { box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    html {
+      width: 100% !important;
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      width: 100% !important;
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+      position: relative;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: none;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    #app-viewport {
+      width: 100% !important;
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+      min-width: 0 !important;
+    }
+
+    img, video, iframe {
+      max-width: 100%;
+      height: auto;
+    }
+
+    h1, h2, h3, h4, h5, h6, p, span, a, button {
+      overflow-wrap: break-word;
+    }
+
+    a, button, input, select, textarea {
+      touch-action: manipulation;
+    }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 99px; }
@@ -479,11 +525,11 @@
 <body class="bg-darkBg text-zinc-100 min-h-screen flex flex-col selection:bg-brand-600 selection:text-white">
 
   <!-- CABEÇALHO UNIFICADO (HEADER) -->
-  <header class="border-b border-darkBorder bg-darkBg/95 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 h-16 flex items-center justify-between transition-all">
+  <header class="border-b border-darkBorder bg-darkBg/95 backdrop-blur sticky top-0 z-50 px-3 sm:px-4 lg:px-8 h-16 flex items-center justify-between transition-all w-full max-w-full overflow-hidden">
     <!-- Lado Esquerdo: Logo + Nome -->
-    <div class="flex items-center space-x-3 cursor-pointer group" onclick="navigateTo('landing')">
-      <img src="logo.png" alt="KOGNUS" class="h-8 w-auto object-contain drop-shadow-[0_2px_8px_rgba(99,102,241,0.3)] transition-transform group-hover:scale-105" onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=K'">
-      <span class="font-black tracking-tight text-xl text-white group-hover:text-brand-400 transition">KOGNUS</span>
+    <div class="flex items-center space-x-2 sm:space-x-3 cursor-pointer group flex-shrink-0" onclick="navigateTo('landing')">
+      <img src="logo.png" alt="KOGNUS" class="h-7 sm:h-8 w-auto object-contain drop-shadow-[0_2px_8px_rgba(99,102,241,0.3)] transition-transform group-hover:scale-105" onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=K'">
+      <span class="font-black tracking-tight text-lg sm:text-xl text-white group-hover:text-brand-400 transition">KOGNUS</span>
     </div>
 
     <!-- Centro: Links de Navegação Consistentes (Desktop) -->
@@ -492,22 +538,22 @@
     </nav>
 
     <!-- Lado Direito: Ações / Perfil de Usuário + Botão Hamburguer Mobile -->
-    <div class="flex items-center space-x-3">
-      <button id="theme-toggle-btn" onclick="toggleKognusTheme()" class="theme-toggle-btn min-h-[44px] min-w-[44px] text-zinc-400 hover:text-amber-400 p-2 rounded-lg hover:bg-zinc-800 transition flex items-center justify-center" aria-label="Alternar Tema" title="Alternar Tema Claro / Escuro">
+    <div class="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0">
+      <button id="theme-toggle-btn" onclick="toggleKognusTheme()" class="theme-toggle-btn min-h-[44px] min-w-[44px] text-zinc-400 hover:text-amber-400 p-2 rounded-lg hover:bg-zinc-800 transition flex items-center justify-center flex-shrink-0" aria-label="Alternar Tema" title="Alternar Tema Claro / Escuro">
         <i data-lucide="sun" class="w-5 h-5 hidden" id="theme-icon-sun"></i>
         <i data-lucide="moon" class="w-5 h-5" id="theme-icon-moon"></i>
       </button>
-      <div id="nav-user-area" class="flex items-center space-x-3">
+      <div id="nav-user-area" class="flex items-center space-x-1.5 sm:space-x-2">
         <!-- Injetado dinamicamente via JS -->
       </div>
-      <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden min-h-[44px] min-w-[44px] text-zinc-400 hover:text-white p-2 rounded-lg hover:bg-zinc-800 transition flex items-center justify-center" aria-label="Abrir Menu">
+      <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden min-h-[44px] min-w-[44px] text-zinc-400 hover:text-white p-2 rounded-lg hover:bg-zinc-800 transition flex items-center justify-center flex-shrink-0" aria-label="Abrir Menu">
         <i data-lucide="menu" class="w-6 h-6"></i>
       </button>
     </div>
   </header>
 
   <!-- Menu Dropdown Mobile (< 768px) -->
-  <div id="mobile-menu" class="hidden md:hidden border-b border-darkBorder bg-zinc-950/98 backdrop-blur-md px-4 py-4 space-y-3 z-40 transition-all">
+  <div id="mobile-menu" class="hidden md:hidden border-b border-darkBorder bg-zinc-950/98 backdrop-blur-md px-4 py-4 space-y-3 z-40 transition-all max-w-full overflow-hidden">
     <div id="mobile-nav-links" class="flex flex-col space-y-2 text-sm font-medium text-zinc-300">
       <!-- Injetado dinamicamente via JS -->
     </div>
@@ -519,17 +565,17 @@
   </main>
 
   <!-- RODAPÉ INSTITUCIONAL OFICIAL -->
-  <footer class="border-t border-darkBorder bg-darkBg py-8 px-4 text-center text-xs text-zinc-500">
-    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center space-x-2">
+  <footer class="border-t border-darkBorder bg-darkBg py-8 px-4 text-center text-xs text-zinc-500 w-full overflow-hidden">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+      <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
         <img src="logo.png" alt="KOGNUS" class="h-5 w-auto object-contain opacity-70" onerror="this.src='https://placehold.co/20x20/6366f1/ffffff?text=K'">
         <span class="font-bold text-zinc-400">KOGNUS</span>
         <span>&copy; 2026. Todos os direitos reservados.</span>
       </div>
-      <div id="footer-links" class="flex items-center space-x-6 text-zinc-400">
+      <div id="footer-links" class="flex flex-wrap items-center justify-center sm:justify-end gap-x-4 gap-y-2 text-zinc-400">
         <button onclick="navigateTo('landing')" class="hover:text-white transition">Início</button>
         <button onclick="navigateTo('register-instructor')" class="hover:text-white transition">Para Instrutores</button>
-        <span class="text-zinc-600">|</span>
+        <span class="text-zinc-600 hidden sm:inline">|</span>
         <span class="text-brand-400 font-semibold">SaaS Puro (0% Comissão • R$ 89,90/mês)</span>
       </div>
     </div>
@@ -548,7 +594,7 @@
         start_url: "/",
         display: "standalone",
         background_color: "#09090b",
-        theme_color: "#4f46e5",
+        theme_color: "#09090b",
         icons: [{ src: "logo.png", sizes: "192x192 512x512", type: "image/png" }]
       };
       if (typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL && typeof document !== 'undefined' && document.head && typeof document.head.appendChild === 'function') {
@@ -1429,13 +1475,25 @@
         `;
 
         navLinks.innerHTML = visitorLinksHtml;
-        if (mobileNavLinks) mobileNavLinks.innerHTML = visitorLinksHtml;
+        if (mobileNavLinks) {
+          mobileNavLinks.innerHTML = `
+            ${visitorLinksHtml}
+            <div class="pt-3 border-t border-darkBorder flex flex-col gap-2">
+              <button onclick="navigateTo('login')" class="w-full min-h-[44px] bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-darkBorder transition text-center">
+                Entrar
+              </button>
+              <button onclick="navigateTo('register-instructor')" class="w-full min-h-[44px] bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-lg shadow-brand-600/30 text-center">
+                Criar Minha Escola
+              </button>
+            </div>
+          `;
+        }
 
         userArea.innerHTML = `
-          <button onclick="navigateTo('login')" class="min-h-[44px] bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-darkBorder transition">
+          <button onclick="navigateTo('login')" class="min-h-[44px] bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-lg border border-darkBorder transition flex-shrink-0">
             Entrar
           </button>
-          <button onclick="navigateTo('register-instructor')" class="min-h-[44px] bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-lg shadow-brand-600/30">
+          <button onclick="navigateTo('register-instructor')" class="hidden sm:inline-flex min-h-[44px] bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-lg shadow-brand-600/30 flex-shrink-0">
             Criar Minha Escola
           </button>
         `;
@@ -1478,11 +1536,22 @@
           </div>
         `;
 
+        if (mobileNavLinks) {
+          mobileNavLinks.innerHTML = `
+            ${linksHtml}
+            <div class="pt-3 border-t border-darkBorder">
+              <button onclick="logout()" class="w-full min-h-[44px] text-red-400 hover:text-red-300 hover:bg-red-500/10 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Sair da Conta
+              </button>
+            </div>
+          `;
+        }
+
         userArea.innerHTML = `
-          <div class="flex items-center space-x-2 bg-zinc-900/80 border border-darkBorder px-2.5 py-1.5 rounded-xl">
-            <button onclick="openProfileModal()" title="Meu Perfil & Segurança" class="flex items-center space-x-2 text-left group hover:opacity-90 transition p-1 rounded-lg hover:bg-zinc-800">
+          <div class="flex items-center space-x-1 sm:space-x-2 bg-zinc-900/80 border border-darkBorder px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl flex-shrink-0">
+            <button onclick="openProfileModal()" title="Meu Perfil & Segurança" class="flex items-center space-x-1.5 sm:space-x-2 text-left group hover:opacity-90 transition p-1 rounded-lg hover:bg-zinc-800">
               ${userAvatarHtml}
-              <div class="text-left hidden sm:block">
+              <div class="text-left hidden md:block">
                 <p class="text-xs font-bold text-white leading-tight flex items-center gap-1 group-hover:text-brand-300 transition">
                   ${currentUser.name || 'Usuário'}
                   <i data-lucide="chevron-down" class="w-3 h-3 text-zinc-400"></i>
@@ -1490,7 +1559,7 @@
                 <span class="text-[10px] px-1.5 py-0.2 rounded border ${roleColor}">${roleBadge}</span>
               </div>
             </button>
-            <button onclick="logout()" title="Sair da Conta" class="text-zinc-400 hover:text-red-400 ml-1 p-1 rounded hover:bg-zinc-800 transition min-h-[44px] min-w-[36px] flex items-center justify-center">
+            <button onclick="logout()" title="Sair da Conta" class="text-zinc-400 hover:text-red-400 ml-0.5 sm:ml-1 p-1 rounded hover:bg-zinc-800 transition min-h-[44px] min-w-[36px] flex items-center justify-center">
               <i data-lucide="log-out" class="w-4 h-4"></i>
             </button>
           </div>
@@ -1500,12 +1569,13 @@
       // Atualização Dinâmica do Rodapé (Isolamento Estrito de Catálogo para Instrutores)
       const footerLinksEl = document.getElementById('footer-links');
       if (footerLinksEl) {
+        footerLinksEl.className = 'flex flex-wrap items-center justify-center sm:justify-end gap-x-4 gap-y-2 text-zinc-400';
         if (!currentUser) {
           footerLinksEl.innerHTML = `
             <button onclick="navigateTo('landing')" class="hover:text-white transition">Início</button>
             <button onclick="navigateTo('landing'); setTimeout(() => { document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' }); }, 50);" class="hover:text-white transition">Cursos / Catálogo</button>
             <button onclick="navigateTo('register-instructor')" class="hover:text-white transition">Para Instrutores</button>
-            <span class="text-zinc-600">|</span>
+            <span class="text-zinc-600 hidden sm:inline">|</span>
             <span class="text-brand-400 font-semibold">SaaS Puro (0% Comissão • R$ 89,90/mês)</span>
           `;
         } else if (currentUser.role === 'instrutor') {
@@ -1514,14 +1584,14 @@
             <button onclick="handleInstructorCertificatesNav()" class="hover:text-white transition">Certificados</button>
             <button onclick="openInstructorGuidesModal()" class="hover:text-white transition">Manuais & Guias</button>
             <button onclick="openProfileModal()" class="hover:text-white transition">Meu Perfil</button>
-            <span class="text-zinc-600">|</span>
+            <span class="text-zinc-600 hidden sm:inline">|</span>
             <span class="text-brand-400 font-semibold">Plataforma KOGNUS Pro</span>
           `;
         } else if (currentUser.role === 'admin') {
           footerLinksEl.innerHTML = `
             <button onclick="navigateTo('dashboard-admin')" class="hover:text-white transition">Painel SaaS</button>
             <button onclick="openProfileModal()" class="hover:text-white transition">Meu Perfil</button>
-            <span class="text-zinc-600">|</span>
+            <span class="text-zinc-600 hidden sm:inline">|</span>
             <span class="text-red-400 font-semibold">SuperAdmin</span>
           `;
         } else {
@@ -1529,7 +1599,7 @@
             <button onclick="navigateTo('dashboard-aluno')" class="hover:text-white transition">Meu Painel de Estudos</button>
             <button onclick="navigateTo('landing'); setTimeout(() => { document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' }); }, 50);" class="hover:text-white transition">Catálogo de Cursos</button>
             <button onclick="openProfileModal()" class="hover:text-white transition">Meu Perfil</button>
-            <span class="text-zinc-600">|</span>
+            <span class="text-zinc-600 hidden sm:inline">|</span>
             <span class="text-brand-400 font-semibold">KOGNUS Aluno</span>
           `;
         }
@@ -1556,6 +1626,11 @@
       const v = document.getElementById('app-viewport');
       if (!v) return;
       window.scrollTo(0, 0);
+
+      const mMenu = document.getElementById('mobile-menu');
+      if (mMenu && !mMenu.classList.contains('hidden')) {
+        mMenu.classList.add('hidden');
+      }
 
       // Verificação de Primeiro Acesso (Troca Obrigatória de Senha)
       if (currentUser && currentUser.must_change_password && view !== 'first-login') {
@@ -1681,7 +1756,7 @@
           </div>
 
           <!-- Barra de Estatísticas do Aluno -->
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg flex items-center space-x-4">
               <div class="p-3 bg-brand-500/10 text-brand-400 rounded-xl border border-brand-500/20">
                 <i data-lucide="book-open" class="w-6 h-6"></i>
@@ -2195,7 +2270,7 @@
           `}
 
           <!-- 3. Grid de Métricas Rápidas (KPIs Reais do Supabase) -->
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
             <div class="bg-darkCard border border-darkBorder p-5 rounded-2xl shadow-lg">
               <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Alunos Ativos</span>
               <p id="kpi-instructor-students" class="text-2xl sm:text-3xl font-black text-white mt-1">${totalActiveStudents} ${totalActiveStudents === 1 ? 'aluno' : 'alunos'}</p>
@@ -3879,9 +3954,9 @@
           </div>
 
           <!-- CONTAINER DO CERTIFICADO HORIZONTAL -->
-          <div class="w-full flex justify-center overflow-x-auto pb-8">
-            <div id="certificate-print-area" class="w-full max-w-[1020px]">
-              <div id="printable-cert" class="cert-sheet cert-outer-frame w-full aspect-[297/210] min-h-[560px] max-h-[720px] bg-white dark:bg-[#08090f] border-4 sm:border-[6px] ${outerBorderClass} rounded-2xl sm:rounded-3xl p-6 sm:p-9 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl transition">
+          <div class="w-full max-w-full flex justify-center overflow-x-auto pb-8">
+            <div id="certificate-print-area" class="w-full max-w-[1020px] min-w-0">
+              <div id="printable-cert" class="cert-sheet cert-outer-frame w-full aspect-[297/210] min-h-[300px] sm:min-h-[560px] max-h-[720px] bg-white dark:bg-[#08090f] border-4 sm:border-[6px] ${outerBorderClass} rounded-2xl sm:rounded-3xl p-6 sm:p-9 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl transition">
                 
                 <!-- Borda interna ornamental refinada -->
                 <div class="cert-inner-frame absolute inset-2.5 sm:inset-3.5 border sm:border-2 ${innerBorderClass} rounded-xl sm:rounded-2xl pointer-events-none"></div>
