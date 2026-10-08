@@ -581,6 +581,216 @@
     </div>
   </footer>
 
+  <!-- MODAL NOVA AULA (OVERLAY FULLSCREEN / MOBILE-FIRST) -->
+  <div id="modal-nova-aula" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm transition-all duration-200 hidden">
+    <!-- Caixa do Modal -->
+    <div class="relative w-full max-w-2xl max-h-[92vh] flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+      
+      <!-- Cabeçalho Fixo do Modal -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/90 backdrop-blur sticky top-0 z-10">
+        <div class="flex items-center gap-2">
+          <span class="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </span>
+          <h3 class="text-lg font-bold text-white tracking-tight">Adicionar Nova Aula / Módulo</h3>
+        </div>
+        <!-- Botão 'X' para fechar imediatamente -->
+        <button type="button" onclick="closeModalNovaAula()" class="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" aria-label="Fechar modal">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Corpo com Scroll Interno para Celulares -->
+      <div class="p-6 overflow-y-auto space-y-4">
+        <form id="form-nova-aula" onsubmit="handleSaveLessonSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-zinc-300 mb-1">Curso Vinculado</label>
+            <select id="nl-course-id" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <!-- Preenchido dinamicamente via JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-zinc-300 mb-1">Título do Módulo</label>
+            <input type="text" id="nl-module-title" required value="Módulo Avançado de Prática" placeholder="Ex: Módulo 1: Fundamentos" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Título da Aula</label>
+              <input type="text" id="nl-lesson-title" required placeholder="Ex: 05. Demonstração Prática" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Duração da Aula</label>
+              <input type="text" id="nl-lesson-duration" value="15 min" placeholder="Ex: 15 min" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+            </div>
+          </div>
+
+          <!-- Seletor do Tipo de Vídeo (Upload vs YouTube) -->
+          <div class="space-y-2 bg-zinc-950/70 p-4 rounded-xl border border-zinc-800">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <label class="text-xs font-bold text-white flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Conteúdo de Vídeo da Aula
+              </label>
+              <div class="flex gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800 text-[11px]">
+                <button type="button" onclick="setLessonVideoMode('youtube')" id="btn-mode-youtube" class="px-2.5 py-1 rounded bg-indigo-600 text-white font-bold transition">YouTube / Vimeo</button>
+                <button type="button" onclick="setLessonVideoMode('upload')" id="btn-mode-upload" class="px-2.5 py-1 rounded text-zinc-400 hover:text-white font-medium transition">Upload (.mp4, .webm)</button>
+              </div>
+            </div>
+
+            <div id="video-input-youtube" class="space-y-1">
+              <label class="block text-[11px] text-zinc-400">URL do Vídeo (YouTube)</label>
+              <input type="text" id="nl-video-url" value="https://www.youtube.com/watch?v=dQw4w9WgXcQ" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div id="video-input-upload" class="hidden space-y-1">
+              <label class="block text-[11px] text-zinc-400">Selecione o arquivo de vídeo (.mp4, .webm):</label>
+              <input type="file" id="nl-video-file" accept="video/mp4,video/webm" onchange="handleLessonVideoUpload(this)" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3.5 py-2 text-xs text-zinc-300 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500">
+              <p id="nl-video-status" class="text-[10px] text-zinc-500">Nenhum arquivo enviado ainda.</p>
+            </div>
+          </div>
+
+          <!-- Material Complementar (PDF) -->
+          <div class="space-y-2 bg-zinc-950/70 p-4 rounded-xl border border-zinc-800">
+            <label class="block text-xs font-bold text-white flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Material Complementar (Apostila em PDF)
+            </label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] text-zinc-400 mb-1">Upload Direto do PDF:</label>
+                <input type="file" id="nl-pdf-file" accept=".pdf" onchange="handleLessonPdfUpload(this)" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3.5 py-2 text-xs text-zinc-300 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500">
+              </div>
+              <div>
+                <label class="block text-[11px] text-zinc-400 mb-1">Nome de Exibição da Apostila:</label>
+                <input type="text" id="nl-pdf-name" value="Material_Complementar.pdf" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Rodapé com Botões de Ação -->
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800 bg-zinc-900/90">
+        <button type="button" onclick="closeModalNovaAula()" class="px-4 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-sm font-medium transition-all">
+          Cancelar
+        </button>
+        <button type="button" onclick="handleSaveLessonSubmit()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-md transition-all">
+          Salvar Aula
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL NOVO CURSO (OVERLAY FULLSCREEN / MOBILE-FIRST) -->
+  <div id="modal-novo-curso" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm transition-all duration-200 hidden">
+    <!-- Caixa do Modal -->
+    <div class="relative w-full max-w-2xl max-h-[92vh] flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+      
+      <!-- Cabeçalho Fixo do Modal -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/90 backdrop-blur sticky top-0 z-10">
+        <div class="flex items-center gap-2">
+          <span class="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          </span>
+          <h3 id="modal-novo-curso-title" class="text-lg font-bold text-white tracking-tight">Cadastrar Novo Curso</h3>
+        </div>
+        <!-- Botão 'X' para fechar imediatamente -->
+        <button type="button" onclick="closeModalNovoCurso()" class="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" aria-label="Fechar modal">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Corpo com Scroll Interno para Celulares -->
+      <div class="p-6 overflow-y-auto space-y-4">
+        <form id="form-novo-curso" onsubmit="handleSaveCourse(event)" class="space-y-4 text-left">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Título do Curso</label>
+              <input type="text" id="course-modal-title" required placeholder="Ex: Formação Completa em Mechas Criativas" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Preço Individual (R$)</label>
+              <input type="text" id="course-modal-price" required value="297,00" placeholder="297,00" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Categoria do Curso</label>
+              <select id="course-modal-category" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <option value="Beleza & Estética">Beleza & Estética</option>
+                <option value="Tecnologia & Programação">Tecnologia & Programação</option>
+                <option value="Culinária & Gastronomia">Culinária & Gastronomia</option>
+                <option value="Negócios & Gestão">Negócios & Gestão</option>
+                <option value="Marketing Digital & Vendas">Marketing Digital & Vendas</option>
+                <option value="Saúde, Bem-estar & Fitness">Saúde, Bem-estar & Fitness</option>
+                <option value="Design & Audiovisual">Design & Audiovisual</option>
+                <option value="Finanças & Investimentos">Finanças & Investimentos</option>
+                <option value="Idiomas">Idiomas</option>
+                <option value="Desenvolvimento Pessoal">Desenvolvimento Pessoal</option>
+                <option value="Educação & Concursos">Educação & Concursos</option>
+                <option value="Música & Artes">Música & Artes</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Acesso Rápido ao Curriculum Builder Completo -->
+          <div class="p-3.5 bg-indigo-500/10 border border-indigo-500/30 rounded-xl flex items-center justify-between">
+            <div>
+              <p class="text-xs font-bold text-white flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Gerenciador Completo de Módulos e Aulas
+              </p>
+              <p class="text-[10px] text-zinc-400">Adicione vídeos, avaliações, PDFs e estruture a grade do curso.</p>
+            </div>
+            <button type="button" onclick="closeModalNovoCurso(); openCurriculumBuilderModal(currentEditingCourseId || (state.courses[0] ? state.courses[0].id : 1))" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+              Abrir Grade
+            </button>
+          </div>
+
+          <!-- Link de Checkout BYOG do Curso -->
+          <div class="bg-zinc-950/70 border border-indigo-500/30 rounded-xl p-4 space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-white flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                Seu Link de Checkout Direto (BYOG - 100% Seu)
+              </label>
+              <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">0% DE TAXAS</span>
+            </div>
+            <p class="text-[11px] text-zinc-400 leading-relaxed">
+              Insira o link de checkout exclusivo deste curso (Kiwify, Hotmart, Stripe, Asaas):
+            </p>
+            <input type="url" id="course-modal-checkout-url" value="https://pay.kiwify.com.br/exemplo-curso" placeholder="https://pay.kiwify.com.br/..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <!-- Capa do Curso -->
+          <div class="bg-zinc-950/70 border border-zinc-800 rounded-xl p-4 space-y-3">
+            <label class="block text-xs font-bold text-white">Imagem de Capa do Treinamento</label>
+            <div class="flex items-center gap-4">
+              <img id="course-cover-preview" src="https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80" alt="Preview" class="w-24 h-16 rounded-lg object-cover border border-zinc-700">
+              <div class="flex-1 space-y-2">
+                <input type="url" id="course-modal-cover-url" oninput="updateCourseCoverPreview(this.value)" placeholder="Cole a URL da capa aqui..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] text-zinc-500">ou</span>
+                  <input type="file" id="course-modal-cover-file" accept="image/*" onchange="handleCourseCoverUpload(this)" class="text-xs text-zinc-400 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-[11px] file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700 cursor-pointer">
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Rodapé com Botões de Ação -->
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800 bg-zinc-900/90">
+        <button type="button" onclick="closeModalNovoCurso()" class="px-4 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-sm font-medium transition-all">
+          Cancelar
+        </button>
+        <button type="button" onclick="handleSaveCourseSubmit()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-md transition-all">
+          Salvar Curso
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- CONTAINER DE TOASTS -->
   <div id="toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col space-y-2 pointer-events-none"></div>
 
@@ -2213,7 +2423,7 @@
                 <button onclick="openCourseModal()" class="flex-1 sm:flex-initial min-h-[44px] bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-brand-600/30">
                   <i data-lucide="plus" class="w-4 h-4"></i> Novo Curso
                 </button>
-                <button onclick="toggleAddLessonForm()" class="min-h-[44px] bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-darkBorder px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+                <button onclick="openModalNovaAula()" class="min-h-[44px] bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-darkBorder px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
                   <i data-lucide="video" class="w-4 h-4 text-brand-400"></i> Nova Aula
                 </button>
               `}
@@ -2312,86 +2522,7 @@
           </div>
 
           <!-- Formulário Expansível: Criar Módulo / Nova Aula com Suporte a Upload -->
-          ${showAddLessonForm && !isLocked ? `
-            <div class="bg-zinc-900 border border-brand-500/40 p-6 rounded-2xl space-y-4 shadow-2xl w-full">
-              <div class="flex justify-between items-center border-b border-darkBorder pb-3">
-                <h3 class="font-bold text-base text-white flex items-center gap-2">
-                  <i data-lucide="plus-circle" class="w-5 h-5 text-brand-400"></i> Adicionar Nova Aula / Módulo
-                </h3>
-                <button onclick="toggleAddLessonForm()" class="text-zinc-400 hover:text-white text-xs">Cancelar</button>
-              </div>
-              <form onsubmit="handleSaveNewLesson(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs font-semibold text-zinc-300 mb-1">Curso Vinculado</label>
-                  <select id="nl-course-id" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white">
-                    ${state.courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('')}
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-zinc-300 mb-1">Título do Módulo</label>
-                  <input type="text" id="nl-module-title" required value="Módulo Avançado de Prática" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-zinc-300 mb-1">Título da Aula</label>
-                  <input type="text" id="nl-lesson-title" required placeholder="Ex: 05. Demonstração Prática" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-zinc-300 mb-1">Duração da Aula</label>
-                  <input type="text" id="nl-lesson-duration" value="15 min" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white">
-                </div>
-
-                <!-- Seletor do Tipo de Vídeo (Upload vs YouTube) -->
-                <div class="sm:col-span-2 space-y-2 bg-zinc-950/70 p-4 rounded-xl border border-darkBorder">
-                  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <label class="text-xs font-bold text-white flex items-center gap-1.5">
-                      <i data-lucide="video" class="w-4 h-4 text-brand-400"></i> Conteúdo de Vídeo da Aula
-                    </label>
-                    <div class="flex gap-1 bg-zinc-900 p-1 rounded-lg border border-darkBorder text-[11px]">
-                      <button type="button" onclick="setLessonVideoMode('youtube')" id="btn-mode-youtube" class="px-2.5 py-1 rounded bg-brand-600 text-white font-bold">YouTube / Vimeo</button>
-                      <button type="button" onclick="setLessonVideoMode('upload')" id="btn-mode-upload" class="px-2.5 py-1 rounded text-zinc-400 hover:text-white font-medium">Upload de Arquivo (.mp4, .webm)</button>
-                    </div>
-                  </div>
-
-                  <div id="video-input-youtube" class="space-y-1">
-                    <label class="block text-[11px] text-zinc-400">URL do Vídeo (YouTube)</label>
-                    <input type="text" id="nl-video-url" value="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white font-mono">
-                  </div>
-
-                  <div id="video-input-upload" class="hidden space-y-1">
-                    <label class="block text-[11px] text-zinc-400">Selecione o arquivo de vídeo (.mp4, .webm):</label>
-                    <input type="file" id="nl-video-file" accept="video/mp4,video/webm" onchange="handleLessonVideoUpload(this)" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-zinc-300 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500">
-                    <p id="nl-video-status" class="text-[10px] text-zinc-500">Nenhum arquivo enviado ainda.</p>
-                  </div>
-                </div>
-
-                <!-- Material Complementar (PDF) -->
-                <div class="sm:col-span-2 space-y-2 bg-zinc-950/70 p-4 rounded-xl border border-darkBorder">
-                  <label class="block text-xs font-bold text-white flex items-center gap-1.5">
-                    <i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i> Material Complementar (Apostila em PDF)
-                  </label>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-[11px] text-zinc-400 mb-1">Upload Direto do PDF:</label>
-                      <input type="file" id="nl-pdf-file" accept=".pdf" onchange="handleLessonPdfUpload(this)" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-zinc-300 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500">
-                    </div>
-                    <div>
-                      <label class="block text-[11px] text-zinc-400 mb-1">Nome de Exibição da Apostila:</label>
-                      <input type="text" id="nl-pdf-name" value="Material_Complementar.pdf" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white">
-                    </div>
-                  </div>
-                </div>
-
-                <div class="sm:col-span-2 flex justify-end gap-3 pt-2">
-                  <button type="button" onclick="toggleAddLessonForm()" class="min-h-[44px] bg-zinc-800 text-zinc-300 text-xs font-bold px-5 py-2.5 rounded-lg border border-darkBorder">
-                    Cancelar
-                  </button>
-                  <button type="submit" class="min-h-[44px] bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-6 py-2.5 rounded-lg transition shadow-lg shadow-emerald-600/30 flex items-center gap-2">
-                    <i data-lucide="check" class="w-4 h-4"></i> Salvar Aula na Grade
-                  </button>
-                </div>
-              </form>
-            </div>
-          ` : ''}
+          
 
           <!-- 4. Grid Principal de Gestão (Cursos + Gateways + Webhooks) -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
@@ -4450,14 +4581,12 @@
 
     function toggleAccordion(moduleId) {
       openAccordionModules[moduleId] = !openAccordionModules[moduleId];
-      const course = state.courses[0];
+      const selectedCourseId = document.getElementById('nl-course-id')?.value;
+      const course = (selectedCourseId ? state.courses.find(c => c.id == selectedCourseId || String(c.id) === String(selectedCourseId)) : null) || state.courses[0];
       navigateTo('player', { courseId: course.id });
     }
 
-    function toggleAddLessonForm() {
-      showAddLessonForm = !showAddLessonForm;
-      navigateTo('dashboard-instrutor');
-    }
+
 
     async function handleSaveNewLesson(e) {
       if (e && e.preventDefault) e.preventDefault();
@@ -4536,7 +4665,7 @@
         }
       }
 
-      showAddLessonForm = false;
+      closeModalNovaAula();
       showToast('Nova aula salva na grade com sucesso!', 'success');
       navigateTo('dashboard-instrutor');
     }
@@ -7290,144 +7419,145 @@
       if (preview && val) preview.src = val;
     }
 
-    // 3. Modal de Criação & Edição de Cursos com BYOG e Upload
-    function openCourseModal(courseId = null) {
-      if (typeof document === 'undefined') return;
-      const existing = document.getElementById('course-modal');
-      if (existing) existing.remove();
+    
+    // =========================================================================
+    // CONTROLES DE MODAIS SOBREPOSTOS (OVERLAY): NOVA AULA E NOVO CURSO
+    // =========================================================================
+    let currentEditingCourseId = null;
 
-      const isEdit = courseId !== null;
-      const course = isEdit ? state.courses.find(c => c.id === courseId) : null;
+    function openModalNovaAula(courseId = null) {
+      const modal = document.getElementById('modal-nova-aula');
+      if (!modal) return;
 
-      const courseCategories = [
-        "Beleza & Estética",
-        "Tecnologia & Programação",
-        "Culinária & Gastronomia",
-        "Negócios & Gestão",
-        "Marketing Digital & Vendas",
-        "Saúde, Bem-estar & Fitness",
-        "Design & Audiovisual",
-        "Finanças & Investimentos",
-        "Idiomas",
-        "Desenvolvimento Pessoal",
-        "Educação & Concursos",
-        "Música & Artes"
-      ];
-      const selectedCat = isEdit ? (course?.category || "Beleza & Estética") : "Beleza & Estética";
+      const selectCourse = document.getElementById('nl-course-id');
+      if (selectCourse && state && state.courses) {
+        selectCourse.innerHTML = state.courses.map(c => `
+          <option value="${c.id}" ${courseId && String(c.id) === String(courseId) ? 'selected' : ''}>${c.title}</option>
+        `).join('');
+      }
 
-      const modal = document.createElement('div');
-      modal.id = 'course-modal';
-      modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto';
-      modal.innerHTML = `
-        <div class="bg-darkCard border border-brand-500/40 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative my-8">
-          <button onclick="closeCourseModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white p-2 rounded-xl hover:bg-zinc-800 transition min-h-[44px] min-w-[44px] flex items-center justify-center">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
+      const lessonTitle = document.getElementById('nl-lesson-title');
+      if (lessonTitle) lessonTitle.value = '';
 
-          <div class="border-b border-darkBorder pb-4">
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 uppercase mb-2">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> ${isEdit ? 'Editar Curso & Configurações BYOG' : 'Novo Curso da Escola'}
-            </div>
-            <h2 class="text-xl sm:text-2xl font-black text-white">${isEdit ? 'Editar ' + course.title : 'Cadastrar Novo Curso'}</h2>
-            <p class="text-xs text-zinc-400 mt-1">Defina preço individual, link de checkout direto (Kiwify/Hotmart/Stripe) e capa.</p>
-          </div>
-
-          <form onsubmit="handleSaveCourse(event, ${isEdit ? `'${course.id}'` : 'null'})" class="space-y-4 text-left">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold text-zinc-300 mb-1">Título do Curso</label>
-                <input type="text" id="course-modal-title" required value="${isEdit ? course.title : ''}" placeholder="Ex: Formação Completa em Mechas Criativas" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-zinc-300 mb-1">Preço Individual (R$)</label>
-                <input type="text" id="course-modal-price" required value="${isEdit ? course.price : '297,00'}" placeholder="297,00" class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-zinc-300 mb-1">Categoria do Curso</label>
-                <select id="course-modal-category" required class="w-full bg-zinc-950 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500">
-                  ${courseCategories.map(cat => `
-                    <option value="${cat}" ${cat === selectedCat ? 'selected' : ''}>${cat}</option>
-                  `).join('')}
-                </select>
-              </div>
-            </div>
-
-            <!-- Acesso Rápido ao Curriculum Builder Completo -->
-            <div class="p-3.5 bg-brand-500/10 border border-brand-500/30 rounded-xl flex items-center justify-between">
-              <div>
-                <p class="text-xs font-bold text-white flex items-center gap-1.5">
-                  <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i> Gerenciador Completo de Módulos e Aulas
-                </p>
-                <p class="text-[10px] text-zinc-400">Adicione vídeos (YouTube/Upload MP4), apostilas PDF e organize a grade.</p>
-              </div>
-              <button type="button" onclick="closeCourseModal(); openCurriculumBuilderModal('${isEdit ? course.id : (state.courses[0] ? state.courses[0].id : 1)}')" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shadow-sm">
-                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Abrir Grade
-              </button>
-            </div>
-
-            <!-- Link de Checkout BYOG do Curso -->
-            <div class="bg-zinc-950/70 border border-brand-500/30 rounded-xl p-4 space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="text-xs font-bold text-white flex items-center gap-1.5">
-                  <i data-lucide="link-2" class="w-4 h-4 text-brand-400"></i> Seu Link de Checkout Direto (BYOG - 100% Seu)
-                </label>
-                <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">0% DE TAXAS</span>
-              </div>
-              <p class="text-[11px] text-zinc-400 leading-relaxed">
-                Insira o link de checkout exclusivo deste curso (Kiwify, Hotmart, Stripe, Asaas):
-              </p>
-              <input type="url" id="course-modal-checkout-url" value="${isEdit && course.checkoutUrl ? course.checkoutUrl : 'https://pay.kiwify.com.br/exemplo-curso'}" placeholder="https://pay.kiwify.com.br/..." class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
-            </div>
-
-            <!-- Capa do Curso com Seletor Alternável (Upload vs URL) -->
-            <div class="space-y-3 bg-zinc-950/70 border border-darkBorder rounded-xl p-4">
-              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <label class="text-xs font-bold text-white flex items-center gap-1.5">
-                  <i data-lucide="image" class="w-4 h-4 text-brand-400"></i> Imagem de Capa do Curso
-                </label>
-                <div class="flex gap-1 bg-zinc-900 p-1 rounded-lg border border-darkBorder text-[11px]">
-                  <button type="button" onclick="setCoverInputMode('upload')" id="btn-cover-upload" class="px-2.5 py-1 rounded bg-brand-600 text-white font-bold">Fazer Upload de Imagem</button>
-                  <button type="button" onclick="setCoverInputMode('url')" id="btn-cover-url" class="px-2.5 py-1 rounded text-zinc-400 hover:text-white font-medium">Colar URL Externa</button>
-                </div>
-              </div>
-
-              <div id="cover-mode-upload" class="space-y-2">
-                <input type="file" id="course-cover-file" accept="image/*" onchange="handleCourseCoverUpload(this)" class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2 text-xs text-zinc-300 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500">
-                <p class="text-[10px] text-zinc-500">Selecione uma imagem do seu computador (JPG, PNG, WebP).</p>
-              </div>
-
-              <div id="cover-mode-url" class="hidden space-y-2">
-                <input type="url" id="course-cover-url" oninput="updateCourseCoverPreview(this.value)" value="${isEdit ? course.image : 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80'}" placeholder="https://images.unsplash.com/..." class="w-full bg-zinc-900 border border-darkBorder rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
-              </div>
-
-              <!-- Preview Instantâneo -->
-              <div class="space-y-1">
-                <span class="text-[10px] font-bold text-zinc-400 uppercase">Preview da Capa:</span>
-                <div class="h-36 w-full rounded-xl overflow-hidden border border-darkBorder bg-zinc-900 relative">
-                  <img id="course-cover-preview" src="${isEdit ? course.image : 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80'}" alt="Preview" class="w-full h-full object-cover">
-                </div>
-              </div>
-            </div>
-
-            <div class="flex justify-end gap-3 pt-3 border-t border-darkBorder">
-              <button type="button" onclick="closeCourseModal()" class="min-h-[44px] bg-zinc-800 text-zinc-300 text-xs font-bold px-5 py-2.5 rounded-xl border border-darkBorder">
-                Cancelar
-              </button>
-              <button type="submit" class="min-h-[44px] bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-6 py-2.5 rounded-xl transition shadow-lg shadow-brand-600/30 flex items-center gap-2">
-                <i data-lucide="check" class="w-4 h-4"></i> Salvar Curso
-              </button>
-            </div>
-          </form>
-        </div>
-      `;
-      document.body.appendChild(modal);
+      modal.classList.remove('hidden');
       if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     }
+    window.openModalNovaAula = openModalNovaAula;
+
+    function closeModalNovaAula() {
+      const modal = document.getElementById('modal-nova-aula');
+      if (modal) modal.classList.add('hidden');
+      showAddLessonForm = false;
+    }
+    window.closeModalNovaAula = closeModalNovaAula;
+
+    function toggleAddLessonForm(courseId = null) {
+      const modal = document.getElementById('modal-nova-aula');
+      if (modal && modal.classList.contains('hidden')) {
+        openModalNovaAula(courseId);
+      } else if (modal) {
+        closeModalNovaAula();
+      }
+    }
+    window.toggleAddLessonForm = toggleAddLessonForm;
+
+    function handleSaveLessonSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const form = document.getElementById('form-nova-aula');
+      if (form && typeof form.requestSubmit === 'function' && !e) {
+        form.requestSubmit();
+      } else {
+        return handleSaveNewLesson(e);
+      }
+    }
+    window.handleSaveLessonSubmit = handleSaveLessonSubmit;
+
+    function openModalNovoCurso(courseId = null) {
+      openCourseModal(courseId);
+    }
+    window.openModalNovoCurso = openModalNovoCurso;
+
+    function closeModalNovoCurso() {
+      closeCourseModal();
+    }
+    window.closeModalNovoCurso = closeModalNovoCurso;
+
+    function openCourseModal(courseId = null) {
+      currentEditingCourseId = courseId;
+      const isEdit = courseId !== null && courseId !== undefined && courseId !== 'null';
+      const course = isEdit ? state.courses.find(c => c.id == courseId || String(c.id) === String(courseId) || c.rawId == courseId) : null;
+
+      const modal = document.getElementById('modal-novo-curso');
+      if (modal) {
+        const titleEl = document.getElementById('modal-novo-curso-title');
+        if (titleEl) {
+          titleEl.textContent = isEdit ? ('Editar ' + (course ? course.title : 'Curso')) : 'Cadastrar Novo Curso';
+        }
+        const inputTitle = document.getElementById('course-modal-title');
+        if (inputTitle) inputTitle.value = isEdit && course ? course.title : '';
+
+        const inputPrice = document.getElementById('course-modal-price');
+        if (inputPrice) inputPrice.value = isEdit && course ? course.price : '297,00';
+
+        const selectCat = document.getElementById('course-modal-category');
+        if (selectCat && isEdit && course && course.category) selectCat.value = course.category;
+
+        const inputCheckout = document.getElementById('course-modal-checkout-url');
+        if (inputCheckout) inputCheckout.value = isEdit && course && course.checkoutUrl ? course.checkoutUrl : 'https://pay.kiwify.com.br/exemplo-curso';
+
+        const preview = document.getElementById('course-cover-preview');
+        if (preview) preview.src = isEdit && course && course.image ? course.image : 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80';
+
+        const inputCoverUrl = document.getElementById('course-modal-cover-url');
+        if (inputCoverUrl) inputCoverUrl.value = isEdit && course && course.image ? course.image : '';
+
+        modal.classList.remove('hidden');
+        if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+        return;
+      }
+    }
+    window.openCourseModal = openCourseModal;
 
     function closeCourseModal() {
-      const m = document.getElementById('course-modal');
-      if (m) m.remove();
+      const modal = document.getElementById('modal-novo-curso');
+      if (modal) modal.classList.add('hidden');
+      const oldModal = document.getElementById('course-modal');
+      if (oldModal && typeof oldModal.remove === 'function') oldModal.remove();
+      currentEditingCourseId = null;
     }
+    window.closeCourseModal = closeCourseModal;
+
+    function handleSaveCourseSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const form = document.getElementById('form-novo-curso');
+      if (form && typeof form.requestSubmit === 'function' && !e) {
+        form.requestSubmit();
+      } else {
+        return handleSaveCourse(e, currentEditingCourseId);
+      }
+    }
+    window.handleSaveCourseSubmit = handleSaveCourseSubmit;
+
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('click', (e) => {
+        const modalAula = document.getElementById('modal-nova-aula');
+        if (modalAula && !modalAula.classList.contains('hidden') && e.target === modalAula) {
+          closeModalNovaAula();
+        }
+        const modalCurso = document.getElementById('modal-novo-curso');
+        if (modalCurso && !modalCurso.classList.contains('hidden') && e.target === modalCurso) {
+          closeModalNovoCurso();
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeModalNovaAula();
+          closeModalNovoCurso();
+        }
+      });
+    }
+
 
     // =========================================================================
     // RECURSO 1: ATIVAR/DESATIVAR CURSO (PUBLICADO VS RASCUNHO)
