@@ -1151,53 +1151,6 @@
           }
         } catch(eInst) {
           console.warn('[Supabase Instructors Hydration Warning]', eInst);
-
-        // 3. Hidrata Configurações da API de WhatsApp do Admin a partir do Supabase
-        try {
-          const { data: waData, error: waErr } = await db
-            .from('admin_whatsapp_config')
-            .select('*')
-            .limit(1)
-            .maybeSingle();
-
-          if (!waErr && waData) {
-            whatsappApiConfig = {
-              provider: waData.provider || 'evolution',
-              baseUrl: waData.base_url || waData.baseUrl || 'https://api.meuservidor.com',
-              instanceName: waData.instance_name || waData.instanceName || 'kognus_admin',
-              apiToken: waData.api_token || waData.apiToken || '',
-              adminTestPhone: waData.admin_test_phone || waData.adminTestPhone || '5511999999999'
-            };
-            try {
-              localStorage.setItem('kognus_whatsapp_config', JSON.stringify(whatsappApiConfig));
-            } catch(e) {}
-          }
-        } catch(eWa) {}
-
-        // 4. Hidrata Histórico de Broadcasts do Admin a partir do Supabase
-        try {
-          const { data: logsData, error: logsErr } = await db
-            .from('admin_broadcast_logs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-
-          if (!logsErr && logsData && logsData.length > 0) {
-            broadcastLogs = logsData.map(l => ({
-              id: l.id,
-              recipientName: l.recipient_name || l.recipientName || 'Instrutor',
-              recipientPhone: l.recipient_phone || l.recipientPhone || '',
-              recipientEmail: l.recipient_email || l.recipientEmail || '',
-              recipientSchool: l.recipient_school || l.recipientSchool || '',
-              message: l.message || '',
-              status: l.status || 'sent',
-              createdAt: l.created_at ? new Date(l.created_at).toLocaleString('pt-BR') : new Date().toLocaleString('pt-BR')
-            }));
-            try {
-              localStorage.setItem('kognus_broadcast_logs', JSON.stringify(broadcastLogs));
-            } catch(e) {}
-          }
-        } catch(eLogs) {}
         }
 
         // 3. Se usuário estiver logado, recupera matrículas e aulas concluídas
@@ -1569,29 +1522,6 @@
                 state.instructors.unshift(savedInst);
               }
             });
-          }
-        } catch(e) {}
-      }
-
-      
-
-      // Restaura configurações de WhatsApp e histórico de disparos do Admin
-      const savedWaConfig = localStorage.getItem('kognus_whatsapp_config');
-      if (savedWaConfig) {
-        try {
-          const parsed = JSON.parse(savedWaConfig);
-          if (parsed && typeof parsed === 'object') {
-            whatsappApiConfig = { ...whatsappApiConfig, ...parsed };
-          }
-        } catch(e) {}
-      }
-
-      const savedBroadcastLogs = localStorage.getItem('kognus_broadcast_logs');
-      if (savedBroadcastLogs) {
-        try {
-          const parsed = JSON.parse(savedBroadcastLogs);
-          if (Array.isArray(parsed)) {
-            broadcastLogs = parsed;
           }
         } catch(e) {}
       }
@@ -2036,7 +1966,7 @@
         case 'dashboard-admin':
         case 'superadmin':
         case 'admin-dash':
-          v.innerHTML = renderAdminDashboard();
+          v.innerHTML = renderSuperAdminPage();
           if (typeof setTimeout !== 'undefined') {
             setTimeout(renderSuperAdminCharts, 50);
           }
@@ -2882,7 +2812,8 @@
       `;
     }
 
-        // PAINEL SUPERADMIN SAAS • CRM & MOTOR DE DISPAROS WHATSAPP
+    
+    // PAINEL SUPERADMIN SAAS • CRM & MOTOR DE DISPAROS WHATSAPP
     function renderAdminDashboard() {
       const activeInstructors = state.instructors.filter(i => i.status === 'ativo');
       const pendingOrBlockedInstructors = state.instructors.filter(i => i.status !== 'ativo');
@@ -2940,10 +2871,10 @@
 
       // Mensagem preview com tags substituídas
       const previewText = (broadcastCurrentMessage || '')
-        .replace(/\{\{nome\}\}/gi, sampleRecipient.name || 'Instrutor')
-        .replace(/\{\{escola\}\}/gi, sampleRecipient.school || 'Sua Escola')
-        .replace(/\{\{cursos_publicados\}\}/gi, String(sampleCoursesCount))
-        .replace(/\{\{link_pagamento\}\}/gi, masterCheckoutUrl);
+        .replace(/{{nome}}/gi, sampleRecipient.name || 'Instrutor')
+        .replace(/{{escola}}/gi, sampleRecipient.school || 'Sua Escola')
+        .replace(/{{cursos_publicados}}/gi, String(sampleCoursesCount))
+        .replace(/{{link_pagamento}}/gi, masterCheckoutUrl);
 
       // Filtro do CRM de Instrutores (Aba 1)
       let filteredInstructors = [...state.instructors];
@@ -3654,6 +3585,8 @@
     window.renderAdminDashboard = renderAdminDashboard;
     window.renderSuperAdminPage = renderAdminDashboard;
 
+
+    
     // ==========================================
     // HANDLERS DO CRM & MOTOR DE WHATSAPP KOGNUS
     // ==========================================
@@ -3681,6 +3614,7 @@
 
     function handleCrmSearchInput(query) {
       crmSearchQuery = query;
+      // Re-renderiza mantendo foco no input de busca se estiver no DOM
       const v = document.getElementById('app-viewport');
       if (v) {
         v.innerHTML = renderAdminDashboard();
@@ -3821,6 +3755,7 @@
       const cleanPhone = rawPhone.replace(/\D/g, '');
       const finalPhone = cleanPhone.startsWith('55') ? cleanPhone : ('55' + cleanPhone);
 
+      // Registra no histórico
       const target = quickWhatsAppTarget || { name: 'Contato', school: 'Escola' };
       const logEntry = {
         id: 'wa_' + Date.now(),
@@ -4122,6 +4057,7 @@
         }
         return await res.json();
       } catch(e) {
+        // Fallback resiliente
         console.warn('[WhatsApp API Request Warning]', e.message);
         return { success: true, fallback: true, warning: e.message };
       }
